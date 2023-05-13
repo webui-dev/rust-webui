@@ -1,2 +1,13 @@
-# rust-webui
-Use any web browser as GUI, with Rust in the backend and HTML5 in the frontend.
+# WebUI Rust (NON-COMPLETE)
+
+# NOTICE: 
+
+## The Rust wrapper still needs to be completed. You can finish it and submit the patch as PR. Thank you.
+
+```sh
+git clone https://github.com/webui-dev/rust-webui.git
+cd rust-webui
+cargo clean
+cargo build
+cargo run
+```
