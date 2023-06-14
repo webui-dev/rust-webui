@@ -21,8 +21,9 @@ use std::os::raw::c_char;
 use std::ffi::CString;
 use std::ffi::CStr;
 use std::collections::HashMap;
+
 use lazy_static::lazy_static;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 
 // Consts
 pub const true_: u32 = 1;
@@ -210,15 +211,28 @@ pub struct Event {
 type FunctionType = fn(Event);
 const ROWS: usize = 64;
 const COLS: usize = 64;
-static mut GLOBAL_ARRAY: Option<[[Option<FunctionType>; COLS]; ROWS]> = None;
+
+#[derive(Copy, Clone)]
+enum GlobalArray {
+    None,
+    Some(FunctionType),
+}
+
+impl Default for GlobalArray {
+    fn default() -> Self {
+        GlobalArray::None
+    }
+}
+
+static mut GLOBAL_ARRAY: [[GlobalArray; COLS]; ROWS] = [[GlobalArray::None; COLS]; ROWS];
 
 lazy_static! {
-    static ref elements_map: HashMap<String, usize> = HashMap::new();
+    static ref ELEMENTS_MAP: Mutex<HashMap<String, usize>> = Mutex::new(HashMap::new());
     // static mut func_array: Vec<Vec<fn(Event)>> = vec![vec![]; 1024];
 }
 
 // Save a string in the map and return its index
-fn save_string(map: &mut HashMap<String, usize>, s: &str) -> usize {
+fn save_string(mut map: MutexGuard<HashMap<String, usize>>, s: &str) -> usize {
     // Check if the string already exists in the map
     if let Some(&index) = map.get(s) {
         return index;
@@ -251,13 +265,21 @@ fn cstr_to_string(c: CString) -> String {
 }
 
 pub fn RunJavaScript(win: *mut ::std::os::raw::c_void, js: &mut JavaScript) {
+    /// The WebUI Script Interface
+    struct WebUIScriptIntf {
+        timeout: u32,
+        script: *mut i8,
+        error: bool,
+        data: *const i8,
+        length: u32,
+    }
     unsafe {
         // Script String to i8/u8
         let script_cpy = String::from(js.script.clone());
         let script_c_str = CString::new(script_cpy).unwrap();
-        let script_c_char: *const c_char = script_c_str.as_ptr() as *const c_char;
+        let script_c_char: *mut c_char = script_c_str.as_ptr() as *mut c_char;
 
-        let script: webui_script_interface_t = webui_script_interface_t {
+        let wuisi = WebUIScriptIntf {
             timeout: js.timeout,
             script: script_c_char as *mut i8,
             data: script_c_char,
@@ -265,18 +287,22 @@ pub fn RunJavaScript(win: *mut ::std::os::raw::c_void, js: &mut JavaScript) {
             length: 0,
         };
 
-        // deprecated
-        webui_script_interface_struct(win, &script);
-        // TODO: `webui_script_interface_struct` is deprecated. use `webui_script` instead.
+        webui_script(
+            win,
+            wuisi.script,
+            wuisi.timeout,
+            script_c_char,
+            wuisi.length,
+        );
 
-        js.error = script.error;
-        js.data = char_to_string(script.data);
+        js.error = wuisi.error;
+        js.data = char_to_string(wuisi.data);
     }
 }
 
 pub fn NewWindow() -> *mut ::std::os::raw::c_void {
     unsafe {
-        GLOBAL_ARRAY = Some([[None; COLS]; ROWS]);
+        GLOBAL_ARRAY = [[GlobalArray::None; COLS]; ROWS];
         return webui_new_window();
     }
 }
@@ -315,12 +341,14 @@ fn events_handler(
     let Element: String = char_to_string(_element);
     let Data: String = char_to_string(_data);
 
-    let element_index = find_string(&elements_map, &Element);
+    let mut map = ELEMENTS_MAP.lock().unwrap();
+
+    let element_index = find_string(&mut map, &Element);
     if element_index < 0 {
         return;
     }
 
-    let E = Event {
+    let evt = Event {
         Window: Window,
         EventType: EventType,
         Element: Element,
@@ -328,25 +356,29 @@ fn events_handler(
     };
 
     // Call the Rust user function
-    let window_id = webui_interface_get_window_id(_window);
-    let window_id_64 = window_id as usize;
     let element_index_64 = element_index as usize;
     unsafe {
+        let window_id = webui_interface_get_window_id(_window);
+        let window_id_64 = window_id as usize;
         // func_list[window_id_64][element_index_64].expect("non-null function pointer")(E);
         // func_array[window_id_64][element_index_64](E);
         // if let Some(func) = GLOBAL_ARRAY[window_id_64][element_index_64] {
         //     func(E.clone());
         // }
-        if let Some(func) = GLOBAL_ARRAY.as_ref().unwrap()[window_id_64][element_index_64] {
-            func(E);
+        if let GlobalArray::Some(func) = GLOBAL_ARRAY[window_id_64][element_index_64] {
+            func(evt);
         }
     }
 }
 
 pub fn Bind(win: *mut ::std::os::raw::c_void, element: &str, func: fn(Event)) {
+    let map = ELEMENTS_MAP.lock().unwrap();
+
     // Element String to i8/u8
     let element_c_str = CString::new(element).unwrap();
     let element_c_char: *const c_char = element_c_str.as_ptr() as *const c_char;
+
+    let element_index = save_string(map, element);
 
     // Bind
     unsafe {
@@ -360,7 +392,6 @@ pub fn Bind(win: *mut ::std::os::raw::c_void, element: &str, func: fn(Event)) {
             )
         > = Some(events_handler);
 
-        let element_index = save_string(&mut elements_map, element);
         let window_id = webui_interface_get_window_id(win);
         let window_id_64 = window_id as usize;
         let element_index_64 = element_index as usize;
@@ -372,6 +403,7 @@ pub fn Bind(win: *mut ::std::os::raw::c_void, element: &str, func: fn(Event)) {
         // func_list[window_id_64][element_index_64] = user_cb;
         // func_array[window_id_64][element_index_64] = func;
         // GLOBAL_ARRAY[window_id_64][element_index_64] = Some(func as FunctionType);
-        GLOBAL_ARRAY.as_mut().unwrap()[window_id_64][element_index_64] = Some(func as FunctionType);
+
+        GLOBAL_ARRAY[window_id_64][element_index_64] = GlobalArray::Some(func as FunctionType);
     }
 }
