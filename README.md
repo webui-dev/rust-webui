@@ -1,6 +1,8 @@
 # WebUI Rust (NON-COMPLETE)
 
-# NOTICE: 
+Status: The Webui compiles but is untested so far.
+
+# NOTICE:
 
 ## The Rust wrapper still needs to be completed. You can finish it and submit the patch as PR. Thank you.
 
