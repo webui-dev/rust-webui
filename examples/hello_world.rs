@@ -1,8 +1,8 @@
-use webui_rs::webui::Window;
+use webui_rs::webui::{Window, wait as webui_wait};
 
 fn main() {
     let win = Window::new();
     win.show("<html>Hello World!</html>");
 
-    win.wait();
+    webui_wait();
 }

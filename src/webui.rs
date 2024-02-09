@@ -120,10 +120,6 @@ impl Window {
     run_js(self.id, js);
   }
 
-  pub fn wait(&self) {
-    wait();
-  }
-
   pub fn close(&self) {
     close(self.id);
   }
