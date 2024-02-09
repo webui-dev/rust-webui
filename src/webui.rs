@@ -133,6 +133,12 @@ impl Window {
   }
 }
 
+impl Drop for Window {
+  fn drop(&mut self) {
+    destroy(self.id);
+  }
+}
+
 // List of Rust user functions (2-dimensional array)
 // static mut func_list: [[Option::<fn(e: Event) -> ()>; 64]; 64] = [[64; 64]; 64];
 // static mut func_array: Vec<Vec<fn(Event)>> = vec![vec![]; 1024];
