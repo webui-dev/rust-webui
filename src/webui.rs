@@ -14,7 +14,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_upper_case_globals)]
 
-mod bindgen;
+pub mod bindgen;
 
 // Modules
 use std::os::raw::c_char;
