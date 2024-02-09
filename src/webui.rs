@@ -244,31 +244,39 @@ unsafe extern "C" fn events_handler(
     }
 }
 
-// pub fn bind(win: usize, element: &str, func: fn(Event)) {
-//     let map = ELEMENTS_MAP.lock().unwrap();
+pub fn bind(win: usize, element: &str, func: fn(Event)) {
+    let map = ELEMENTS_MAP.lock().unwrap();
 
-//     // Element String to i8/u8
-//     let element_c_str = CString::new(element).unwrap();
-//     let element_c_char: *const c_char = element_c_str.as_ptr() as *const c_char;
+    // Element String to i8/u8
+    let element_c_str = CString::new(element).unwrap();
+    let element_c_char: *const c_char = element_c_str.as_ptr() as *const c_char;
 
-//     let element_index = save_string(map, element);
+    let element_index = save_string(map, element);
 
-//     // Bind
-//     unsafe {
-//         let f = Some(events_handler);
+    // Bind
+    unsafe {
+        let f: Option<
+            unsafe extern "C" fn(
+                usize,
+                usize,
+                *mut ::std::os::raw::c_char,
+                usize,
+                usize,
+            ),
+        > = Some(events_handler);
 
-//         let window_id = webui_interface_get_window_id(win);
-//         let window_id_64 = window_id as usize;
-//         let element_index_64 = element_index as usize;
+        let window_id = webui_interface_get_window_id(win);
+        let window_id_64 = window_id as usize;
+        let element_index_64 = element_index as usize;
 
-//         webui_interface_bind(win, element_c_char, f);
+        webui_interface_bind(win, element_c_char, f);
 
-//         // Add the Rust user function to the list
-//         // let user_cb: Option<fn(e: Event)> = Some(func);
-//         // func_list[window_id_64][element_index_64] = user_cb;
-//         // func_array[window_id_64][element_index_64] = func;
-//         // GLOBAL_ARRAY[window_id_64][element_index_64] = Some(func as FunctionType);
+        // Add the Rust user function to the list
+        // let user_cb: Option<fn(e: Event)> = Some(func);
+        // func_list[window_id_64][element_index_64] = user_cb;
+        // func_array[window_id_64][element_index_64] = func;
+        // GLOBAL_ARRAY[window_id_64][element_index_64] = Some(func as FunctionType);
 
-//         GLOBAL_ARRAY[window_id_64][element_index_64] = GlobalArray::Some(func as FunctionType);
-//     }
-// }
+        GLOBAL_ARRAY[window_id_64][element_index_64] = GlobalArray::Some(func as FunctionType);
+    }
+}
