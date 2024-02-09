@@ -9,11 +9,9 @@
 */
 
 // Flags
-#![allow(non_camel_case_types)]
 #![allow(unsafe_code)]
 #![allow(dead_code)]
-#![allow(non_snake_case)]
-#![allow(improper_ctypes)]
+#![allow(non_camel_case_types)]
 #![allow(non_upper_case_globals)]
 
 mod bindgen;
@@ -36,31 +34,53 @@ pub type size_t = ::std::os::raw::c_ulong;
 pub type wchar_t = ::std::os::raw::c_int;
 
 // Browsers
-pub const AnyBrowser: u32 = 0;
-pub const Chrome: u32 = 1;
-pub const Firefox: u32 = 2;
-pub const Edge: u32 = 3;
-pub const Safari: u32 = 4;
-pub const Chromium: u32 = 5;
-pub const Opera: u32 = 6;
-pub const Brave: u32 = 7;
-pub const Vivaldi: u32 = 8;
-pub const Epic: u32 = 9;
-pub const Yandex: u32 = 10;
+pub enum WebUIBrowser {
+    AnyBrowser = 0,
+    Chrome = 1,
+    Firefox = 2,
+    Edge = 3,
+    Safari = 4,
+    Chromium = 5,
+    Opera = 6,
+    Brave = 7,
+    Vivaldi = 8,
+    Epic = 9,
+    Yandex = 10,
+}
 
 // Runtimes
-pub const None: u32 = 0;
-pub const Deno: u32 = 1;
-pub const NodeJS: u32 = 2;
+pub enum WebUIRuntime {
+    None = 0,
+    Deno = 1,
+    NodeJS = 2,
+}
 
 // Events
-pub const WEBUI_EVENT_DISCONNECTED: u32 = 0;
-pub const WEBUI_EVENT_CONNECTED: u32 = 1;
-pub const WEBUI_EVENT_MULTI_CONNECTION: u32 = 2;
-pub const WEBUI_EVENT_UNWANTED_CONNECTION: u32 = 3;
-pub const WEBUI_EVENT_MOUSE_CLICK: u32 = 4;
-pub const WEBUI_EVENT_NAVIGATION: u32 = 5;
-pub const WEBUI_EVENT_CALLBACK: u32 = 6;
+pub enum WebUIEvent {
+  WebUiEventDisconnected = 0,
+  WebUiEventConnected = 1,
+  WebUiEventMultiConnection = 2,
+  WebUiEventUnwantedConnection = 3,
+  WebUiEventMouseClick = 4,
+  WebUiEventNavigation = 5,
+  WebUiEventCallback = 6,
+}
+
+// Implement into<usize>
+impl WebUIEvent {
+    pub fn from_usize(value: usize) -> WebUIEvent {
+        match value {
+            0 => WebUIEvent::WebUiEventDisconnected,
+            1 => WebUIEvent::WebUiEventConnected,
+            2 => WebUIEvent::WebUiEventMultiConnection,
+            3 => WebUIEvent::WebUiEventUnwantedConnection,
+            4 => WebUIEvent::WebUiEventMouseClick,
+            5 => WebUIEvent::WebUiEventNavigation,
+            6 => WebUIEvent::WebUiEventCallback,
+            _ => WebUIEvent::WebUiEventCallback,
+        }
+    }
+}
 
 pub struct JavaScript {
     pub timeout: usize,
@@ -72,10 +92,45 @@ pub struct JavaScript {
 // Window, EventType, Element, EventNumber, BindID
 pub struct Event {
     pub window: usize,
-    pub event_type: usize,
+    pub event_type: WebUIEvent,
     pub element: *mut c_char,
     pub event_number: usize,
     pub bind_id: usize,
+}
+
+pub struct Window {
+  pub id: usize,
+}
+
+impl Window {
+  pub fn new() -> Window {
+    let id = new_window();
+    Window { id }
+  }
+
+  pub fn show(&self, content: impl AsRef<str>) -> bool {
+    show(self.id, content.as_ref())
+  }
+
+  pub fn bind(&self, element: impl AsRef<str>, func: fn(Event)) {
+    bind(self.id, element.as_ref(), func);
+  }
+
+  pub fn run_js(&self, js: &mut JavaScript) {
+    run_js(self.id, js);
+  }
+
+  pub fn wait(&self) {
+    wait();
+  }
+
+  pub fn close(&self) {
+    close(self.id);
+  }
+
+  pub fn destroy(&self) {
+    destroy(self.id);
+  }
 }
 
 // List of Rust user functions (2-dimensional array)
@@ -206,6 +261,18 @@ pub fn show(win: usize, content: &str) -> bool {
     }
 }
 
+pub fn close(win: usize) {
+    unsafe {
+        webui_close(win);
+    }
+}
+
+pub fn destroy(win: usize) {
+    unsafe {
+        webui_destroy(win);
+    }
+}
+
 unsafe extern "C" fn events_handler(
     window: usize,
     event_type: usize,
@@ -222,7 +289,7 @@ unsafe extern "C" fn events_handler(
 
     let evt = Event {
         window: window,
-        event_type: event_type,
+        event_type: WebUIEvent::from_usize(event_type),
         element: element,
         event_number: event_number,
         bind_id: bind_id,
