@@ -1,12 +1,10 @@
 fn main() {
-    // Path to prebuilt WebUI static library
-    println!("cargo:rustc-link-search=../../../build/Windows/MSVC/");
-
-    // Path to WebUI include folder (Optional)
-    println!("cargo:rustc-link-search=../../../include/");   
-    
-    // WebUI static library name
+    // WebUI static lib
     println!("cargo:rustc-link-lib=webui-2-static");
-    println!("cargo:rustc-link-lib=user32");
-    println!("cargo:rustc-link-lib=shell32");
+
+    #[cfg(target_os = "windows")]
+    {
+      println!("cargo:rustc-link-lib=user32");
+      println!("cargo:rustc-link-lib=shell32");
+    }
 }
