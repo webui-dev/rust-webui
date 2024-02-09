@@ -8,4 +8,5 @@ fn main() {
     // WebUI static library name
     println!("cargo:rustc-link-lib=webui-2-static");
     println!("cargo:rustc-link-lib=user32");
+    println!("cargo:rustc-link-lib=shell32");
 }
