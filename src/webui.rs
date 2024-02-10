@@ -17,14 +17,14 @@
 pub mod bindgen;
 
 // Modules
-use std::os::raw::c_char;
-use std::ffi::CString;
-use std::ffi::CStr;
 use std::collections::HashMap;
+use std::ffi::CStr;
+use std::ffi::CString;
+use std::os::raw::c_char;
 
+use bindgen::*;
 use lazy_static::lazy_static;
 use std::sync::{Mutex, MutexGuard};
-use bindgen::*;
 
 // Consts
 pub const true_: u32 = 1;
@@ -57,13 +57,13 @@ pub enum WebUIRuntime {
 
 // Events
 pub enum WebUIEvent {
-  WebUiEventDisconnected = 0,
-  WebUiEventConnected = 1,
-  WebUiEventMultiConnection = 2,
-  WebUiEventUnwantedConnection = 3,
-  WebUiEventMouseClick = 4,
-  WebUiEventNavigation = 5,
-  WebUiEventCallback = 6,
+    WebUiEventDisconnected = 0,
+    WebUiEventConnected = 1,
+    WebUiEventMultiConnection = 2,
+    WebUiEventUnwantedConnection = 3,
+    WebUiEventMouseClick = 4,
+    WebUiEventNavigation = 5,
+    WebUiEventCallback = 6,
 }
 
 // Implement into<usize>
@@ -99,40 +99,46 @@ pub struct Event {
 }
 
 pub struct Window {
-  pub id: usize,
+    pub id: usize,
+}
+
+impl Default for Window {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Window {
-  pub fn new() -> Window {
-    let id = new_window();
-    Window { id }
-  }
+    pub fn new() -> Window {
+        let id = new_window();
+        Window { id }
+    }
 
-  pub fn show(&self, content: impl AsRef<str>) -> bool {
-    show(self.id, content.as_ref())
-  }
+    pub fn show(&self, content: impl AsRef<str>) -> bool {
+        show(self.id, content.as_ref())
+    }
 
-  pub fn bind(&self, element: impl AsRef<str>, func: fn(Event)) {
-    bind(self.id, element.as_ref(), func);
-  }
+    pub fn bind(&self, element: impl AsRef<str>, func: fn(Event)) {
+        bind(self.id, element.as_ref(), func);
+    }
 
-  pub fn run_js(&self, js: &mut JavaScript) {
-    run_js(self.id, js);
-  }
+    pub fn run_js(&self, js: &mut JavaScript) {
+        run_js(self.id, js);
+    }
 
-  pub fn close(&self) {
-    close(self.id);
-  }
+    pub fn close(&self) {
+        close(self.id);
+    }
 
-  pub fn destroy(&self) {
-    destroy(self.id);
-  }
+    pub fn destroy(&self) {
+        destroy(self.id);
+    }
 }
 
 impl Drop for Window {
-  fn drop(&mut self) {
-    destroy(self.id);
-  }
+    fn drop(&mut self) {
+        destroy(self.id);
+    }
 }
 
 // List of Rust user functions (2-dimensional array)
@@ -146,16 +152,14 @@ const ROWS: usize = 64;
 const COLS: usize = 64;
 
 #[derive(Copy, Clone)]
+#[derive(Default)]
 enum GlobalArray {
+    #[default]
     None,
     Some(FunctionType),
 }
 
-impl Default for GlobalArray {
-    fn default() -> Self {
-        GlobalArray::None
-    }
-}
+
 
 static mut GLOBAL_ARRAY: [[GlobalArray; COLS]; ROWS] = [[GlobalArray::None; COLS]; ROWS];
 
@@ -189,12 +193,12 @@ fn find_string(map: &HashMap<String, usize>, s: &str) -> isize {
 fn char_to_string(c: *const i8) -> String {
     let cstr = unsafe { CStr::from_ptr(c) };
     let s: String = String::from_utf8_lossy(cstr.to_bytes()).to_string();
-    return s;
+    s
 }
 
 fn cstr_to_string(c: CString) -> String {
     let s: String = String::from_utf8_lossy(c.to_bytes()).to_string();
-    return s;
+    s
 }
 
 pub fn run_js(win: usize, js: &mut JavaScript) {
@@ -209,13 +213,13 @@ pub fn run_js(win: usize, js: &mut JavaScript) {
 
     unsafe {
         // Script String to i8/u8
-        let script_cpy = String::from(js.script.clone());
+        let script_cpy = js.script.clone();
         let script_c_str = CString::new(script_cpy).unwrap();
         let script_c_char: *mut c_char = script_c_str.as_ptr() as *mut c_char;
 
         let wuisi = WebUIScriptIntf {
             timeout: js.timeout,
-            script: script_c_char as *mut i8,
+            script: script_c_char,
             data: script_c_char,
             error: false,
             length: 0,
@@ -237,7 +241,7 @@ pub fn run_js(win: usize, js: &mut JavaScript) {
 pub fn new_window() -> usize {
     unsafe {
         GLOBAL_ARRAY = [[GlobalArray::None; COLS]; ROWS];
-        return webui_new_window();
+        webui_new_window()
     }
 }
 
@@ -259,7 +263,7 @@ pub fn show(win: usize, content: &str) -> bool {
         let content_c_str = CString::new(content).unwrap();
         let content_c_char: *const c_char = content_c_str.as_ptr() as *const c_char;
 
-        return webui_show(win, content_c_char);
+        webui_show(win, content_c_char)
     }
 }
 
@@ -282,26 +286,26 @@ unsafe extern "C" fn events_handler(
     event_number: usize,
     bind_id: usize,
 ) {
-    let mut map = ELEMENTS_MAP.lock().unwrap();
+    let map = ELEMENTS_MAP.lock().unwrap();
 
-    let element_index = find_string(&mut map, &char_to_string(element));
+    let element_index = find_string(&map, &char_to_string(element));
     if element_index < 0 {
         return;
     }
 
     let evt = Event {
-        window: window,
+        window,
         event_type: WebUIEvent::from_usize(event_type),
-        element: element,
-        event_number: event_number,
-        bind_id: bind_id,
+        element,
+        event_number,
+        bind_id,
     };
 
     // Call the Rust user function
     let element_index_64 = element_index as usize;
     unsafe {
         let window_id = webui_interface_get_window_id(window);
-        let window_id_64 = window_id as usize;
+        let window_id_64 = window_id;
         // func_list[window_id_64][element_index_64].expect("non-null function pointer")(E);
         // func_array[window_id_64][element_index_64](E);
         // if let Some(func) = GLOBAL_ARRAY[window_id_64][element_index_64] {
@@ -325,18 +329,12 @@ pub fn bind(win: usize, element: &str, func: fn(Event)) {
     // Bind
     unsafe {
         let f: Option<
-            unsafe extern "C" fn(
-                usize,
-                usize,
-                *mut ::std::os::raw::c_char,
-                usize,
-                usize,
-            ),
+            unsafe extern "C" fn(usize, usize, *mut ::std::os::raw::c_char, usize, usize),
         > = Some(events_handler);
 
         let window_id = webui_interface_get_window_id(win);
-        let window_id_64 = window_id as usize;
-        let element_index_64 = element_index as usize;
+        let window_id_64 = window_id;
+        let element_index_64 = element_index;
 
         webui_interface_bind(win, element_c_char, f);
 
