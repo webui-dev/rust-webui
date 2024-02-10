@@ -35,17 +35,19 @@ pub type wchar_t = ::std::os::raw::c_int;
 
 // Browsers
 pub enum WebUIBrowser {
-    AnyBrowser = 0,
-    Chrome = 1,
-    Firefox = 2,
-    Edge = 3,
-    Safari = 4,
-    Chromium = 5,
-    Opera = 6,
-    Brave = 7,
-    Vivaldi = 8,
-    Epic = 9,
-    Yandex = 10,
+  NoBrowser = 0,
+  AnyBrowser = 1,
+  Chrome,
+  Firefox,
+  Edge,
+  Safari,
+  Chromium,
+  Opera,
+  Brave,
+  Vivaldi,
+  Epic,
+  Yandex,
+  ChromiumBased,
 }
 
 // Runtimes
@@ -118,6 +120,14 @@ impl Window {
         show(self.id, content.as_ref())
     }
 
+    pub fn show_browser(&self, content: impl AsRef<str>, browser: WebUIBrowser) -> bool {
+        show_browser(self.id, content.as_ref(), browser)
+    }
+
+    pub fn is_shown(&self) -> bool {
+        is_shown(self.id)
+    }
+
     pub fn bind(&self, element: impl AsRef<str>, func: fn(Event)) {
         bind(self.id, element.as_ref(), func);
     }
@@ -158,8 +168,6 @@ enum GlobalArray {
     None,
     Some(FunctionType),
 }
-
-
 
 static mut GLOBAL_ARRAY: [[GlobalArray; COLS]; ROWS] = [[GlobalArray::None; COLS]; ROWS];
 
@@ -257,13 +265,32 @@ pub fn exit() {
     }
 }
 
-pub fn show(win: usize, content: &str) -> bool {
+pub fn show(win: usize, content: impl AsRef<str> + Into<Vec<u8>>) -> bool {
     unsafe {
         // Content String to i8/u8
         let content_c_str = CString::new(content).unwrap();
         let content_c_char: *const c_char = content_c_str.as_ptr() as *const c_char;
 
         webui_show(win, content_c_char)
+    }
+}
+
+pub fn show_browser(win: usize, content: impl AsRef<str> + Into<Vec<u8>>, browser: WebUIBrowser) -> bool {
+    let content_c_str = CString::new(content).unwrap();
+    let content_c_char: *const c_char = content_c_str.as_ptr() as *const c_char;
+
+    unsafe {
+        webui_show_browser(
+          win,
+          content_c_char,
+          browser as usize
+        )
+    }
+}
+
+pub fn is_shown(win: usize) -> bool {
+    unsafe {
+        webui_is_shown(win)
     }
 }
 
