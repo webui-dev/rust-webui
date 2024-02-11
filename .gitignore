@@ -1,2 +1,6 @@
 target
 *.lib
+*.a
+*.dll
+*.so
+*.dylib
