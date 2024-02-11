@@ -7,10 +7,6 @@
 # Special Thanks to Turiiya (https://github.com/ttytm)
 name: MacOS
 
-concurrency:
-  group: ${{ github.ref }}-${{ github.workflow }}
-  cancel-in-progress: false
-
 on:
   workflow_call:
 
