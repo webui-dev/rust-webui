@@ -3,7 +3,7 @@ use webui_rs::webui::{wait, Event, JavaScript, Window};
 fn main() {
     let win = Window::new();
 
-    // Inline function
+    // Declared function
     win.bind("my_button", log_to_js);
 
     win.show(
