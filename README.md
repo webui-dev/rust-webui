@@ -42,6 +42,18 @@ Examples are found in `examples/` and can be run with `cargo run --example <exam
 
 3. That's it!
 
+## Usage
+
+```rust
+use webui_rs::webui;
+
+pub fn main() {
+  let win = webui::Window::new();
+  win.show("<html><body><h1>Hello, World!</h1></body></html>");
+  webui::wait();
+}
+```
+
 ## UI & The Web Technologies
 
 [Borislav Stanimirov](https://ibob.bg/) discusses using HTML5 in the web browser as GUI at the [C++ Conference 2019 (_YouTube_)](https://www.youtube.com/watch?v=bbbcZd4cuxg).
