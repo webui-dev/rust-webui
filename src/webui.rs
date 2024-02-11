@@ -100,6 +100,12 @@ pub struct Event {
     pub bind_id: usize,
 }
 
+impl Event {
+  pub fn get_window(&self) -> Window {
+    Window::from_id(self.window)
+  }
+}
+
 pub struct Window {
     pub id: usize,
 }
@@ -113,6 +119,10 @@ impl Default for Window {
 impl Window {
     pub fn new() -> Window {
         let id = new_window();
+        Window { id }
+    }
+
+    pub fn from_id(id: usize) -> Window {
         Window { id }
     }
 
