@@ -35,19 +35,19 @@ pub type wchar_t = ::std::os::raw::c_int;
 
 // Browsers
 pub enum WebUIBrowser {
-  NoBrowser = 0,
-  AnyBrowser = 1,
-  Chrome,
-  Firefox,
-  Edge,
-  Safari,
-  Chromium,
-  Opera,
-  Brave,
-  Vivaldi,
-  Epic,
-  Yandex,
-  ChromiumBased,
+    NoBrowser = 0,
+    AnyBrowser = 1,
+    Chrome,
+    Firefox,
+    Edge,
+    Safari,
+    Chromium,
+    Opera,
+    Brave,
+    Vivaldi,
+    Epic,
+    Yandex,
+    ChromiumBased,
 }
 
 // Runtimes
@@ -101,9 +101,9 @@ pub struct Event {
 }
 
 impl Event {
-  pub fn get_window(&self) -> Window {
-    Window::from_id(self.window)
-  }
+    pub fn get_window(&self) -> Window {
+        Window::from_id(self.window)
+    }
 }
 
 pub struct Window {
@@ -171,8 +171,7 @@ type FunctionType = fn(Event);
 const ROWS: usize = 64;
 const COLS: usize = 64;
 
-#[derive(Copy, Clone)]
-#[derive(Default)]
+#[derive(Copy, Clone, Default)]
 enum GlobalArray {
     #[default]
     None,
@@ -285,23 +284,19 @@ pub fn show(win: usize, content: impl AsRef<str> + Into<Vec<u8>>) -> bool {
     }
 }
 
-pub fn show_browser(win: usize, content: impl AsRef<str> + Into<Vec<u8>>, browser: WebUIBrowser) -> bool {
+pub fn show_browser(
+    win: usize,
+    content: impl AsRef<str> + Into<Vec<u8>>,
+    browser: WebUIBrowser,
+) -> bool {
     let content_c_str = CString::new(content).unwrap();
     let content_c_char: *const c_char = content_c_str.as_ptr() as *const c_char;
 
-    unsafe {
-        webui_show_browser(
-          win,
-          content_c_char,
-          browser as usize
-        )
-    }
+    unsafe { webui_show_browser(win, content_c_char, browser as usize) }
 }
 
 pub fn is_shown(win: usize) -> bool {
-    unsafe {
-        webui_is_shown(win)
-    }
+    unsafe { webui_is_shown(win) }
 }
 
 pub fn close(win: usize) {
