@@ -142,8 +142,17 @@ impl Window {
         bind(self.id, element.as_ref(), func);
     }
 
-    pub fn run_js(&self, js: &mut JavaScript) {
-        run_js(self.id, js);
+    pub fn run_js(&self, js: impl AsRef<str>) -> JavaScript {
+        let mut js = JavaScript {
+            timeout: 0,
+            script: js.as_ref().to_string(),
+            error: false,
+            data: "".to_string(),
+        };
+
+        run_js(self.id, &mut js);
+
+        js
     }
 
     pub fn close(&self) {

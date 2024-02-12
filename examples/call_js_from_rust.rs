@@ -1,4 +1,4 @@
-use webui_rs::webui::{wait, Event, JavaScript, Window};
+use webui_rs::webui::{wait, Event, Window};
 
 fn main() {
     let win = Window::new();
@@ -19,20 +19,9 @@ fn main() {
 }
 
 fn log_to_js(e: Event) {
-    let mut script = script(
+    e.get_window().run_js(
         r#"
-  console.log('Button clicked!')
-  "#,
+    console.log('Button clicked!')
+    "#,
     );
-
-    e.get_window().run_js(&mut script);
-}
-
-fn script(contents: &str) -> JavaScript {
-    JavaScript {
-        timeout: 0,
-        script: contents.to_string(),
-        error: false,
-        data: "".to_string(),
-    }
 }
