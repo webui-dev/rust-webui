@@ -50,6 +50,27 @@ pub enum WebUIBrowser {
     ChromiumBased,
 }
 
+impl Clone for WebUIBrowser {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl Copy for WebUIBrowser {}
+
+impl WebUIBrowser {
+    pub fn to_usize(&self) -> usize {
+        *self as usize
+    }
+}
+
+// Impl equality operator
+impl PartialEq for WebUIBrowser {
+  fn eq(&self, other: &Self) -> bool {
+      self.to_usize() == other.to_usize()
+  }
+}
+
 // Runtimes
 pub enum WebUIRuntime {
     None = 0,
