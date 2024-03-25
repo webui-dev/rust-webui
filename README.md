@@ -38,7 +38,7 @@ Examples are found in `examples/` and can be run with `cargo run --example <exam
   webui = { git = "https://github.com/webui-dev/rust-webui/", rev = "a1b2c3d4" }
   ```
 
-2. Then bring in the static [WebUI static release](https://github.com/webui-dev/webui/releases) file for your platform and place it in your project's root directory.
+2. Then bring in the static [WebUI static release](https://github.com/webui-dev/webui/releases) or [build action](https://github.com/webui-dev/webui/actions?query=branch%3Amain) file for your platform and place it in your project's root directory.
 
 3. That's it!
 
