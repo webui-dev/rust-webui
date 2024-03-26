@@ -1,1 +1,6 @@
-NON_COMPLETE_RUST_WRAPPER/hello_world/target
+target
+*.lib
+*.a
+*.dll
+*.so
+*.dylib
