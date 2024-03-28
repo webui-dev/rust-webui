@@ -176,6 +176,10 @@ impl Window {
         js
     }
 
+    pub fn set_icon(&self, icon: impl AsRef<str>, kind: impl AsRef<str>) {
+        set_icon(self.id, icon.as_ref(), kind.as_ref());
+    }
+
     pub fn close(&self) {
         close(self.id);
     }
@@ -327,6 +331,17 @@ pub fn show_browser(
 
 pub fn is_shown(win: usize) -> bool {
     unsafe { webui_is_shown(win) }
+}
+
+pub fn set_icon(win: usize, icon: &str, kind: &str) {
+    let icon_c_str = CString::new(icon).unwrap();
+    let kind_c_str = CString::new(kind).unwrap();
+    let icon_c_char: *const c_char = icon_c_str.as_ptr() as *const c_char;
+    let kind_c_char: *const c_char = kind_c_str.as_ptr() as *const c_char;
+
+    unsafe {
+        webui_set_icon(win, icon_c_char, kind_c_char);
+    }
 }
 
 pub fn close(win: usize) {
