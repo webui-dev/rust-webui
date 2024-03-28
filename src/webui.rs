@@ -66,9 +66,9 @@ impl WebUIBrowser {
 
 // Impl equality operator
 impl PartialEq for WebUIBrowser {
-  fn eq(&self, other: &Self) -> bool {
-      self.to_usize() == other.to_usize()
-  }
+    fn eq(&self, other: &Self) -> bool {
+        self.to_usize() == other.to_usize()
+    }
 }
 
 // Runtimes
@@ -180,7 +180,10 @@ impl Window {
         set_icon(self.id, icon.as_ref(), kind.as_ref());
     }
 
-    pub fn set_file_handler(&self, handler: unsafe extern "C" fn(*const i8, *mut i32) -> *const std::os::raw::c_void) {
+    pub fn set_file_handler(
+        &self,
+        handler: unsafe extern "C" fn(*const i8, *mut i32) -> *const std::os::raw::c_void,
+    ) {
         set_file_handler(self.id, handler);
     }
 
@@ -314,7 +317,6 @@ pub fn set_timeout(seconds: usize) {
     unsafe {
         webui_set_timeout(seconds);
     }
-
 }
 
 pub fn exit() {
@@ -446,7 +448,10 @@ pub fn bind(win: usize, element: &str, func: fn(Event)) {
     }
 }
 
-pub fn set_file_handler(win: usize, handler: unsafe extern "C" fn(*const i8, *mut i32) -> *const std::os::raw::c_void) {
+pub fn set_file_handler(
+    win: usize,
+    handler: unsafe extern "C" fn(*const i8, *mut i32) -> *const std::os::raw::c_void,
+) {
     unsafe {
         webui_set_file_handler(win, Some(handler));
     }
