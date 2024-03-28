@@ -180,6 +180,14 @@ impl Window {
         set_icon(self.id, icon.as_ref(), kind.as_ref());
     }
 
+    pub fn set_file_handler(&self, handler: unsafe extern "C" fn(*const i8, *mut i32) -> *const std::os::raw::c_void) {
+        set_file_handler(self.id, handler);
+    }
+
+    pub fn set_runtime(&self, runtime: WebUIRuntime) {
+        set_runtime(self.id, runtime);
+    }
+
     pub fn close(&self) {
         close(self.id);
     }
@@ -302,6 +310,13 @@ pub fn wait() {
     }
 }
 
+pub fn set_timeout(seconds: usize) {
+    unsafe {
+        webui_set_timeout(seconds);
+    }
+
+}
+
 pub fn exit() {
     unsafe {
         webui_exit();
@@ -341,6 +356,12 @@ pub fn set_icon(win: usize, icon: &str, kind: &str) {
 
     unsafe {
         webui_set_icon(win, icon_c_char, kind_c_char);
+    }
+}
+
+pub fn set_runtime(win: usize, runtime: WebUIRuntime) {
+    unsafe {
+        webui_set_runtime(win, runtime as usize);
     }
 }
 
@@ -422,5 +443,11 @@ pub fn bind(win: usize, element: &str, func: fn(Event)) {
         // GLOBAL_ARRAY[window_id_64][element_index_64] = Some(func as FunctionType);
 
         GLOBAL_ARRAY[window_id_64][element_index_64] = GlobalArray::Some(func as FunctionType);
+    }
+}
+
+pub fn set_file_handler(win: usize, handler: unsafe extern "C" fn(*const i8, *mut i32) -> *const std::os::raw::c_void) {
+    unsafe {
+        webui_set_file_handler(win, Some(handler));
     }
 }
