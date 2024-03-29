@@ -66,9 +66,9 @@ impl WebUIBrowser {
 
 // Impl equality operator
 impl PartialEq for WebUIBrowser {
-  fn eq(&self, other: &Self) -> bool {
-      self.to_usize() == other.to_usize()
-  }
+    fn eq(&self, other: &Self) -> bool {
+        self.to_usize() == other.to_usize()
+    }
 }
 
 // Runtimes
@@ -174,6 +174,21 @@ impl Window {
         run_js(self.id, &mut js);
 
         js
+    }
+
+    pub fn set_icon(&self, icon: impl AsRef<str>, kind: impl AsRef<str>) {
+        set_icon(self.id, icon.as_ref(), kind.as_ref());
+    }
+
+    pub fn set_file_handler(
+        &self,
+        handler: unsafe extern "C" fn(*const i8, *mut i32) -> *const std::os::raw::c_void,
+    ) {
+        set_file_handler(self.id, handler);
+    }
+
+    pub fn set_runtime(&self, runtime: WebUIRuntime) {
+        set_runtime(self.id, runtime);
     }
 
     pub fn close(&self) {
@@ -298,6 +313,12 @@ pub fn wait() {
     }
 }
 
+pub fn set_timeout(seconds: usize) {
+    unsafe {
+        webui_set_timeout(seconds);
+    }
+}
+
 pub fn exit() {
     unsafe {
         webui_exit();
@@ -327,6 +348,23 @@ pub fn show_browser(
 
 pub fn is_shown(win: usize) -> bool {
     unsafe { webui_is_shown(win) }
+}
+
+pub fn set_icon(win: usize, icon: &str, kind: &str) {
+    let icon_c_str = CString::new(icon).unwrap();
+    let kind_c_str = CString::new(kind).unwrap();
+    let icon_c_char: *const c_char = icon_c_str.as_ptr() as *const c_char;
+    let kind_c_char: *const c_char = kind_c_str.as_ptr() as *const c_char;
+
+    unsafe {
+        webui_set_icon(win, icon_c_char, kind_c_char);
+    }
+}
+
+pub fn set_runtime(win: usize, runtime: WebUIRuntime) {
+    unsafe {
+        webui_set_runtime(win, runtime as usize);
+    }
 }
 
 pub fn close(win: usize) {
@@ -407,5 +445,14 @@ pub fn bind(win: usize, element: &str, func: fn(Event)) {
         // GLOBAL_ARRAY[window_id_64][element_index_64] = Some(func as FunctionType);
 
         GLOBAL_ARRAY[window_id_64][element_index_64] = GlobalArray::Some(func as FunctionType);
+    }
+}
+
+pub fn set_file_handler(
+    win: usize,
+    handler: unsafe extern "C" fn(*const i8, *mut i32) -> *const std::os::raw::c_void,
+) {
+    unsafe {
+        webui_set_file_handler(win, Some(handler));
     }
 }
