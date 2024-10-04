@@ -1,4 +1,4 @@
-use webui_rs::webui::bindgen::*;
+use webui_rs::bindgen::*;
 
 fn main() {
     // Scary! The bindgen exports are interfacing directly with the C library, so no guarantees!

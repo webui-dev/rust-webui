@@ -109,6 +109,12 @@ Think of WebUI like a WebView controller, but instead of embedding the WebView c
 | Apple Safari    | _not available_ | _coming soon_ | _not available_ |
 | Opera           | _coming soon_   | _coming soon_ | _coming soon_   |
 
+### Tests
+
+```
+cargo test --package webui-rs --lib -- tests --show-output
+```
+
 ### License
 
 > Licensed under the MIT License.

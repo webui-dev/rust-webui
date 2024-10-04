@@ -1,9 +1,8 @@
 [package]
-name = "webui-rs"
+name = "bindings-updater"
 version = "0.1.0"
-build = "build.rs"
 edition = "2021"
 
-[build-dependencies]
+[dependencies]
+bindgen = "0.70.1"
 reqwest = { version = "0.12.7", features = ["blocking"] }
-zip = "2.2.0"
