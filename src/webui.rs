@@ -1,9 +1,9 @@
 /*
-  WebUI Library 2.2.0
-  http://_webui_core.me
-  https://github.com/alifcommunity/webui
-  Copyright (c) 2020-2023 Hassan Draga.
-  Licensed under GNU General Public License v2.0.
+  WebUI Library
+  http://webui.me
+  https://github.com/webui-dev/rust-webui
+  Copyright (c) 2020-2026 Hassan Draga.
+  Licensed under MIT License.
   All rights reserved.
   Canada.
 */
@@ -48,6 +48,7 @@ pub enum WebUIBrowser {
     Epic,
     Yandex,
     ChromiumBased,
+    Webview,
 }
 
 impl Clone for WebUIBrowser {
@@ -76,33 +77,59 @@ pub enum WebUIRuntime {
     None = 0,
     Deno = 1,
     NodeJS = 2,
+    Bun = 3,
 }
 
 // Events
 pub enum WebUIEvent {
     WebUiEventDisconnected = 0,
     WebUiEventConnected = 1,
-    WebUiEventMultiConnection = 2,
-    WebUiEventUnwantedConnection = 3,
-    WebUiEventMouseClick = 4,
-    WebUiEventNavigation = 5,
-    WebUiEventCallback = 6,
+    WebUiEventMouseClick = 2,
+    WebUiEventNavigation = 3,
+    WebUiEventCallback = 4,
 }
 
-// Implement into<usize>
 impl WebUIEvent {
     pub fn from_usize(value: usize) -> WebUIEvent {
         match value {
             0 => WebUIEvent::WebUiEventDisconnected,
             1 => WebUIEvent::WebUiEventConnected,
-            2 => WebUIEvent::WebUiEventMultiConnection,
-            3 => WebUIEvent::WebUiEventUnwantedConnection,
-            4 => WebUIEvent::WebUiEventMouseClick,
-            5 => WebUIEvent::WebUiEventNavigation,
-            6 => WebUIEvent::WebUiEventCallback,
+            2 => WebUIEvent::WebUiEventMouseClick,
+            3 => WebUIEvent::WebUiEventNavigation,
+            4 => WebUIEvent::WebUiEventCallback,
             _ => WebUIEvent::WebUiEventCallback,
         }
     }
+}
+
+// Config options
+pub enum WebUIConfig {
+    ShowWaitConnection = 0,
+    UiEventBlocking = 1,
+    FolderMonitor = 2,
+    MultiClient = 3,
+    UseCookies = 4,
+    AsynchronousResponse = 5,
+}
+
+impl WebUIConfig {
+    pub fn to_usize(&self) -> usize {
+        match self {
+            WebUIConfig::ShowWaitConnection => 0,
+            WebUIConfig::UiEventBlocking => 1,
+            WebUIConfig::FolderMonitor => 2,
+            WebUIConfig::MultiClient => 3,
+            WebUIConfig::UseCookies => 4,
+            WebUIConfig::AsynchronousResponse => 5,
+        }
+    }
+}
+
+// Logger levels
+pub enum WebUILoggerLevel {
+    Debug = 0,
+    Info = 1,
+    Error = 2,
 }
 
 pub struct JavaScript {
@@ -124,6 +151,77 @@ pub struct Event {
 impl Event {
     pub fn get_window(&self) -> Window {
         Window::from_id(self.window)
+    }
+
+    pub fn show_client(&self, content: impl AsRef<str>) -> bool {
+        let content_c_str = CString::new(content.as_ref()).unwrap();
+        let content_c_char: *const c_char = content_c_str.as_ptr() as *const c_char;
+        unsafe { webui_interface_show_client(self.window, self.event_number, content_c_char) }
+    }
+
+    pub fn close_client(&self) {
+        unsafe { webui_interface_close_client(self.window, self.event_number) }
+    }
+
+    pub fn send_raw_client(&self, func: impl AsRef<str>, raw: &[u8]) {
+        let func_c_str = CString::new(func.as_ref()).unwrap();
+        let func_c_char: *const c_char = func_c_str.as_ptr() as *const c_char;
+        unsafe {
+            webui_interface_send_raw_client(
+                self.window,
+                self.event_number,
+                func_c_char,
+                raw.as_ptr() as *const std::os::raw::c_void,
+                raw.len(),
+            );
+        }
+    }
+
+    pub fn navigate_client(&self, url: impl AsRef<str>) {
+        let url_c_str = CString::new(url.as_ref()).unwrap();
+        let url_c_char: *const c_char = url_c_str.as_ptr() as *const c_char;
+        unsafe { webui_interface_navigate_client(self.window, self.event_number, url_c_char) }
+    }
+
+    pub fn run_client(&self, script: impl AsRef<str>) {
+        let script_c_str = CString::new(script.as_ref()).unwrap();
+        let script_c_char: *const c_char = script_c_str.as_ptr() as *const c_char;
+        unsafe { webui_interface_run_client(self.window, self.event_number, script_c_char) }
+    }
+
+    pub fn script_client(&self, js: impl AsRef<str>) -> JavaScript {
+        let mut js_obj = JavaScript {
+            timeout: 0,
+            script: js.as_ref().to_string(),
+            error: false,
+            data: "".to_string(),
+        };
+
+        let script_c_str = CString::new(js_obj.script.clone()).unwrap();
+        let script_c_char: *const c_char = script_c_str.as_ptr() as *const c_char;
+
+        const BUFFER_SIZE: usize = 1024 * 8;
+        let mut buffer = vec![0i8; BUFFER_SIZE];
+
+        let result = unsafe {
+            webui_interface_script_client(
+                self.window,
+                self.event_number,
+                script_c_char,
+                js_obj.timeout,
+                buffer.as_mut_ptr(),
+                BUFFER_SIZE,
+            )
+        };
+
+        js_obj.error = !result;
+        js_obj.data = unsafe {
+            CStr::from_ptr(buffer.as_ptr())
+                .to_string_lossy()
+                .into_owned()
+        };
+
+        js_obj
     }
 }
 
@@ -187,8 +285,146 @@ impl Window {
         set_file_handler(self.id, handler);
     }
 
+    pub fn set_file_handler_window(
+        &self,
+        handler: unsafe extern "C" fn(usize, *const i8, *mut i32) -> *const std::os::raw::c_void,
+    ) {
+        set_file_handler_window(self.id, handler);
+    }
+
     pub fn set_runtime(&self, runtime: WebUIRuntime) {
         set_runtime(self.id, runtime);
+    }
+
+    pub fn get_best_browser(&self) -> usize {
+        get_best_browser(self.id)
+    }
+
+    pub fn show_wv(&self, content: impl AsRef<str>) -> bool {
+        show_wv(self.id, content.as_ref())
+    }
+
+    pub fn start_server(&self, content: impl AsRef<str>) -> String {
+        start_server(self.id, content.as_ref())
+    }
+
+    pub fn set_kiosk(&self, status: bool) {
+        set_kiosk(self.id, status);
+    }
+
+    pub fn focus(&self) {
+        focus(self.id);
+    }
+
+    pub fn set_custom_parameters(&self, params: impl AsRef<str>) {
+        set_custom_parameters(self.id, params.as_ref());
+    }
+
+    pub fn set_high_contrast(&self, status: bool) {
+        set_high_contrast(self.id, status);
+    }
+
+    pub fn set_resizable(&self, status: bool) {
+        set_resizable(self.id, status);
+    }
+
+    pub fn minimize(&self) {
+        minimize(self.id);
+    }
+
+    pub fn maximize(&self) {
+        maximize(self.id);
+    }
+
+    pub fn set_root_folder(&self, path: impl AsRef<str>) -> bool {
+        set_root_folder(self.id, path.as_ref())
+    }
+
+    pub fn set_close_handler_wv(
+        &self,
+        handler: unsafe extern "C" fn(usize) -> bool,
+    ) {
+        set_close_handler_wv(self.id, handler);
+    }
+
+    pub fn set_minimum_size(&self, width: u32, height: u32) {
+        set_minimum_size(self.id, width, height);
+    }
+
+    pub fn set_center(&self) {
+        set_center(self.id);
+    }
+
+    pub fn set_proxy(&self, proxy_server: impl AsRef<str>) {
+        set_proxy(self.id, proxy_server.as_ref());
+    }
+
+    pub fn get_url(&self) -> String {
+        get_url(self.id)
+    }
+
+    pub fn set_public(&self, status: bool) {
+        set_public(self.id, status);
+    }
+
+    pub fn navigate(&self, url: impl AsRef<str>) {
+        navigate(self.id, url.as_ref());
+    }
+
+    pub fn get_parent_process_id(&self) -> usize {
+        get_parent_process_id(self.id)
+    }
+
+    pub fn get_child_process_id(&self) -> usize {
+        get_child_process_id(self.id)
+    }
+
+    pub fn get_hwnd(&self) -> *mut std::os::raw::c_void {
+        get_hwnd(self.id)
+    }
+
+    pub fn get_port(&self) -> usize {
+        get_port(self.id)
+    }
+
+    pub fn set_port(&self, port: usize) -> bool {
+        set_port(self.id, port)
+    }
+
+    pub fn set_event_blocking(&self, status: bool) {
+        set_event_blocking(self.id, status);
+    }
+
+    pub fn set_frameless(&self, status: bool) {
+        set_frameless(self.id, status);
+    }
+
+    pub fn set_transparent(&self, status: bool) {
+        set_transparent(self.id, status);
+    }
+
+    pub fn run(&self, script: impl AsRef<str>) {
+        run(self.id, script.as_ref());
+    }
+
+    pub fn send_raw(&self, func: impl AsRef<str>, raw: &[u8]) {
+        send_raw(self.id, func.as_ref(), raw);
+    }
+
+    pub fn set_hide(&self, status: bool) {
+        set_hide(self.id, status);
+    }
+
+    pub fn set_size(&self, width: u32, height: u32) {
+        set_size(self.id, width, height);
+    }
+
+    pub fn set_position(&self, x: u32, y: u32) {
+        set_position(self.id, x, y);
+    }
+
+    pub fn set_profile(&self, name: impl AsRef<str>, path: impl AsRef<str>) {
+        set_profile(self.id, name.as_ref(), path.as_ref());
     }
 
     pub fn close(&self) {
@@ -448,6 +684,75 @@ pub fn bind(win: usize, element: &str, func: fn(Event)) {
     }
 }
 
+pub fn get_best_browser(win: usize) -> usize {
+    unsafe { webui_get_best_browser(win) }
+}
+
+pub fn show_wv(win: usize, content: impl AsRef<str> + Into<Vec<u8>>) -> bool {
+    unsafe {
+        let content_c_str = CString::new(content).unwrap();
+        let content_c_char: *const c_char = content_c_str.as_ptr() as *const c_char;
+        webui_show_wv(win, content_c_char)
+    }
+}
+
+pub fn start_server(win: usize, content: impl AsRef<str> + Into<Vec<u8>>) -> String {
+    unsafe {
+        let content_c_str = CString::new(content).unwrap();
+        let content_c_char: *const c_char = content_c_str.as_ptr() as *const c_char;
+        let url = webui_start_server(win, content_c_char);
+        char_to_string(url as *const i8)
+    }
+}
+
+pub fn focus(win: usize) {
+    unsafe { webui_focus(win) }
+}
+
+pub fn set_custom_parameters(win: usize, params: impl AsRef<str> + Into<Vec<u8>>) {
+    let params_c_str = CString::new(params).unwrap();
+    let params_c_char = params_c_str.as_ptr() as *mut c_char;
+    unsafe { webui_set_custom_parameters(win, params_c_char) }
+}
+
+pub fn set_high_contrast(win: usize, status: bool) {
+    unsafe { webui_set_high_contrast(win, status) }
+}
+
+pub fn set_resizable(win: usize, status: bool) {
+    unsafe { webui_set_resizable(win, status) }
+}
+
+pub fn is_high_contrast() -> bool {
+    unsafe { webui_is_high_contrast() }
+}
+
+pub fn browser_exist(browser: WebUIBrowser) -> bool {
+    unsafe { webui_browser_exist(browser as usize) }
+}
+
+pub fn wait_async() -> bool {
+    unsafe { webui_wait_async() }
+}
+
+pub fn minimize(win: usize) {
+    unsafe { webui_minimize(win) }
+}
+
+pub fn maximize(win: usize) {
+    unsafe { webui_maximize(win) }
+}
+
+pub fn set_browser_folder(path: impl AsRef<str> + Into<Vec<u8>>) {
+    let path_c_str = CString::new(path).unwrap();
+    let path_c_char: *const c_char = path_c_str.as_ptr() as *const c_char;
+    unsafe { webui_set_browser_folder(path_c_char) }
+}
+
+pub fn set_close_handler_wv(win: usize, handler: unsafe extern "C" fn(usize) -> bool) {
+    unsafe { webui_set_close_handler_wv(win, Some(handler)) }
+}
+
 pub fn set_file_handler(
     win: usize,
     handler: unsafe extern "C" fn(*const i8, *mut i32) -> *const std::os::raw::c_void,
@@ -455,4 +760,179 @@ pub fn set_file_handler(
     unsafe {
         webui_set_file_handler(win, Some(handler));
     }
+}
+
+pub fn set_file_handler_window(
+    win: usize,
+    handler: unsafe extern "C" fn(usize, *const i8, *mut i32) -> *const std::os::raw::c_void,
+) {
+    unsafe {
+        webui_set_file_handler_window(win, Some(handler));
+    }
+}
+
+pub fn set_minimum_size(win: usize, width: u32, height: u32) {
+    unsafe { webui_set_minimum_size(win, width, height) }
+}
+
+pub fn set_center(win: usize) {
+    unsafe { webui_set_center(win) }
+}
+
+pub fn open_url(url: impl AsRef<str> + Into<Vec<u8>>) {
+    let url_c_str = CString::new(url).unwrap();
+    let url_c_char: *const c_char = url_c_str.as_ptr() as *const c_char;
+    unsafe { webui_open_url(url_c_char) }
+}
+
+pub fn get_url(win: usize) -> String {
+    unsafe {
+        let url = webui_get_url(win);
+        char_to_string(url as *const i8)
+    }
+}
+
+pub fn set_public(win: usize, status: bool) {
+    unsafe { webui_set_public(win, status) }
+}
+
+pub fn navigate(win: usize, url: impl AsRef<str> + Into<Vec<u8>>) {
+    let url_c_str = CString::new(url).unwrap();
+    let url_c_char: *const c_char = url_c_str.as_ptr() as *const c_char;
+    unsafe { webui_navigate(win, url_c_char) }
+}
+
+pub fn get_parent_process_id(win: usize) -> usize {
+    unsafe { webui_get_parent_process_id(win) }
+}
+
+pub fn get_child_process_id(win: usize) -> usize {
+    unsafe { webui_get_child_process_id(win) }
+}
+
+pub fn get_hwnd(win: usize) -> *mut std::os::raw::c_void {
+    unsafe { webui_get_hwnd(win) }
+}
+
+pub fn get_port(win: usize) -> usize {
+    unsafe { webui_get_port(win) }
+}
+
+pub fn set_port(win: usize, port: usize) -> bool {
+    unsafe { webui_set_port(win, port) }
+}
+
+pub fn get_free_port() -> usize {
+    unsafe { webui_get_free_port() }
+}
+
+pub fn set_config(option: WebUIConfig, status: bool) {
+    unsafe { webui_set_config(option.to_usize(), status) }
+}
+
+pub fn set_event_blocking(win: usize, status: bool) {
+    unsafe { webui_set_event_blocking(win, status) }
+}
+
+pub fn set_frameless(win: usize, status: bool) {
+    unsafe { webui_set_frameless(win, status) }
+}
+
+pub fn set_transparent(win: usize, status: bool) {
+    unsafe { webui_set_transparent(win, status) }
+}
+
+pub fn get_mime_type(file: impl AsRef<str> + Into<Vec<u8>>) -> String {
+    let file_c_str = CString::new(file).unwrap();
+    let file_c_char: *const c_char = file_c_str.as_ptr() as *const c_char;
+    unsafe { char_to_string(webui_get_mime_type(file_c_char) as *const i8) }
+}
+
+pub fn memcpy(dest: *mut std::os::raw::c_void, src: *mut std::os::raw::c_void, count: usize) {
+    unsafe { webui_memcpy(dest, src, count) }
+}
+
+pub fn send_raw(win: usize, func: impl AsRef<str> + Into<Vec<u8>>, raw: &[u8]) {
+    let func_c_str = CString::new(func).unwrap();
+    let func_c_char: *const c_char = func_c_str.as_ptr() as *const c_char;
+    unsafe {
+        webui_send_raw(
+            win,
+            func_c_char,
+            raw.as_ptr() as *const std::os::raw::c_void,
+            raw.len(),
+        )
+    }
+}
+
+pub fn set_hide(win: usize, status: bool) {
+    unsafe { webui_set_hide(win, status) }
+}
+
+pub fn set_size(win: usize, width: u32, height: u32) {
+    unsafe { webui_set_size(win, width, height) }
+}
+
+pub fn set_position(win: usize, x: u32, y: u32) {
+    unsafe { webui_set_position(win, x, y) }
+}
+
+pub fn set_profile(win: usize, name: &str, path: &str) {
+    let name_c_str = CString::new(name).unwrap();
+    let path_c_str = CString::new(path).unwrap();
+    let name_c_char: *const c_char = name_c_str.as_ptr() as *const c_char;
+    let path_c_char: *const c_char = path_c_str.as_ptr() as *const c_char;
+    unsafe { webui_set_profile(win, name_c_char, path_c_char) }
+}
+
+pub fn set_proxy(win: usize, proxy_server: impl AsRef<str> + Into<Vec<u8>>) {
+    let proxy_c_str = CString::new(proxy_server).unwrap();
+    let proxy_c_char: *const c_char = proxy_c_str.as_ptr() as *const c_char;
+    unsafe { webui_set_proxy(win, proxy_c_char) }
+}
+
+pub fn run(win: usize, script: impl AsRef<str> + Into<Vec<u8>>) {
+    let script_c_str = CString::new(script).unwrap();
+    let script_c_char: *const c_char = script_c_str.as_ptr() as *const c_char;
+    unsafe { webui_run(win, script_c_char) }
+}
+
+pub fn get_last_error_number() -> usize {
+    unsafe { webui_get_last_error_number() }
+}
+
+pub fn get_last_error_message() -> String {
+    unsafe { char_to_string(webui_get_last_error_message() as *const i8) }
+}
+
+pub fn set_default_root_folder(path: impl AsRef<str> + Into<Vec<u8>>) -> bool {
+    let path_c_str = CString::new(path).unwrap();
+    let path_c_char: *const c_char = path_c_str.as_ptr() as *const c_char;
+    unsafe { webui_set_default_root_folder(path_c_char) }
+}
+
+pub fn set_root_folder(win: usize, path: impl AsRef<str> + Into<Vec<u8>>) -> bool {
+    let path_c_str = CString::new(path).unwrap();
+    let path_c_char: *const c_char = path_c_str.as_ptr() as *const c_char;
+    unsafe { webui_set_root_folder(win, path_c_char) }
+}
+
+pub fn set_tls_certificate(certificate_pem: &str, private_key_pem: &str) -> bool {
+    let cert_c_str = CString::new(certificate_pem).unwrap();
+    let key_c_str = CString::new(private_key_pem).unwrap();
+    let cert_c_char: *const c_char = cert_c_str.as_ptr() as *const c_char;
+    let key_c_char: *const c_char = key_c_str.as_ptr() as *const c_char;
+    unsafe { webui_set_tls_certificate(cert_c_char, key_c_char) }
+}
+
+pub fn clean() {
+    unsafe { webui_clean() }
+}
+
+pub fn delete_all_profiles() {
+    unsafe { webui_delete_all_profiles() }
+}
+
+pub fn delete_profile(win: usize) {
+    unsafe { webui_delete_profile(win) }
 }

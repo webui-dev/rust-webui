@@ -2,11 +2,14 @@
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct webui_event_t {
-    pub window: *mut ::std::os::raw::c_void,
-    pub type_: ::std::os::raw::c_uint,
+    pub window: usize,
+    pub event_type: usize,
     pub element: *mut ::std::os::raw::c_char,
-    pub data: *mut ::std::os::raw::c_char,
-    pub response: *mut ::std::os::raw::c_char,
+    pub event_number: usize,
+    pub bind_id: usize,
+    pub client_id: usize,
+    pub connection_id: usize,
+    pub cookies: *mut ::std::os::raw::c_char,
 }
 
 extern "C" {
@@ -22,7 +25,7 @@ extern "C" {
     pub fn webui_get_new_window_id() -> usize;
 }
 extern "C" {
-    #[doc = " @brief Bind a specific html element click event with a function. Empty\n element means all events.\n\n @param window The window number\n @param element The HTML ID\n @param func The callback function\n\n @return Returns a unique bind ID.\n\n @example webui_bind(myWindow, \"myID\", myFunction);"]
+    #[doc = " @brief Bind an HTML element and a JavaScript object with a backend function. Empty\n element name means all events.\n\n @param window The window number\n @param element The HTML element / JavaScript object\n @param func The callback function\n\n @return Returns a unique bind ID.\n\n @example webui_bind(myWindow, \"myFunction\", myFunction);"]
     pub fn webui_bind(
         window: usize,
         element: *const ::std::os::raw::c_char,
@@ -30,8 +33,31 @@ extern "C" {
     ) -> usize;
 }
 extern "C" {
+    #[doc = " @brief Use this API after using `webui_bind()` to add any user data to it that can be\n read later using `webui_get_context()`.\n\n @param window The window number\n @param element The HTML element / JavaScript object\n @param context Any user data\n\n @example webui_set_context(myWindow, \"myFunction\", myData);"]
+    pub fn webui_set_context(
+        window: usize,
+        element: *const ::std::os::raw::c_char,
+        context: *mut ::std::os::raw::c_void,
+    );
+}
+extern "C" {
+    #[doc = " @brief Get user data that is set using `webui_set_context()`.\n\n @param e The event struct\n\n @return Returns user data pointer.\n\n @example void* myData = webui_get_context(e);"]
+    pub fn webui_get_context(e: *mut webui_event_t) -> *mut ::std::os::raw::c_void;
+}
+extern "C" {
+    #[doc = " @brief Get the recommended web browser ID to use. If you\n are already using one, this function will return the same ID.\n\n @param window The window number\n\n @return Returns a web browser ID.\n\n @example size_t browserID = webui_get_best_browser(myWindow);"]
+    pub fn webui_get_best_browser(window: usize) -> usize;
+}
+extern "C" {
     #[doc = " @brief Show a window using embedded HTML, or a file. If the window is already\n open, it will be refreshed.\n\n @param window The window number\n @param content The HTML, URL, Or a local file\n\n @return Returns True if showing the window is successed.\n\n @example webui_show(myWindow, \"<html>...</html>\"); | webui_show(myWindow,\n \"index.html\"); | webui_show(myWindow, \"http://...\");"]
     pub fn webui_show(window: usize, content: *const ::std::os::raw::c_char) -> bool;
+}
+extern "C" {
+    #[doc = " @brief Show a window using embedded HTML, or a file. Single client.\n\n @param e The event struct\n @param content The HTML, URL, Or a local file\n\n @return Returns True if showing the window is successed.\n\n @example webui_show_client(e, \"<html>...</html>\");"]
+    pub fn webui_show_client(
+        e: *mut webui_event_t,
+        content: *const ::std::os::raw::c_char,
+    ) -> bool;
 }
 extern "C" {
     #[doc = " @brief Same as `webui_show()`. But using a specific web browser.\n\n @param window The window number\n @param content The HTML, Or a local file\n @param browser The web browser to be used\n\n @return Returns True if showing the window is successed.\n\n @example webui_show_browser(myWindow, \"<html>...</html>\", Chrome); |\n webui_show(myWindow, \"index.html\", Firefox);"]
@@ -42,16 +68,73 @@ extern "C" {
     ) -> bool;
 }
 extern "C" {
-    #[doc = " @brief Set the window in Kiosk mode (Full screen)\n\n @param window The window number\n @param status True or False\n\n @example webui_set_kiosk(myWindow, true);"]
+    #[doc = " @brief Start only the local web server and return the URL. No window will be shown.\n\n @param window The window number\n @param content The local file or local folder to serve\n\n @return Returns the url of this window server.\n\n @example const char* url = webui_start_server(myWindow, \"/full/root/path\");"]
+    pub fn webui_start_server(
+        window: usize,
+        content: *const ::std::os::raw::c_char,
+    ) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " @brief Show a WebView window using embedded HTML, or a file.\n\n @param window The window number\n @param content The HTML, URL, Or a local file\n\n @return Returns True if showing the WebView window is successed.\n\n @example webui_show_wv(myWindow, \"<html>...</html>\");"]
+    pub fn webui_show_wv(
+        window: usize,
+        content: *const ::std::os::raw::c_char,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " @brief Set the window in Kiosk mode (Full screen).\n\n @param window The window number\n @param status True or False\n\n @example webui_set_kiosk(myWindow, true);"]
     pub fn webui_set_kiosk(window: usize, status: bool);
+}
+extern "C" {
+    #[doc = " @brief Bring a window to the front and focus it.\n\n @param window The window number\n\n @example webui_focus(myWindow);"]
+    pub fn webui_focus(window: usize);
+}
+extern "C" {
+    #[doc = " @brief Add a user-defined web browser's CLI parameters.\n\n @param window The window number\n @param params Command line parameters\n\n @example webui_set_custom_parameters(myWindow, \"--remote-debugging-port=9222\");"]
+    pub fn webui_set_custom_parameters(
+        window: usize,
+        params: *mut ::std::os::raw::c_char,
+    );
+}
+extern "C" {
+    #[doc = " @brief Set the window with high-contrast support.\n\n @param window The window number\n @param status True or False\n\n @example webui_set_high_contrast(myWindow, true);"]
+    pub fn webui_set_high_contrast(window: usize, status: bool);
+}
+extern "C" {
+    #[doc = " @brief Sets whether the window frame is resizable or fixed. Works only on WebView window.\n\n @param window The window number\n @param status True or False\n\n @example webui_set_resizable(myWindow, true);"]
+    pub fn webui_set_resizable(window: usize, status: bool);
+}
+extern "C" {
+    #[doc = " @brief Get OS high contrast preference.\n\n @return Returns True if OS is using high contrast theme\n\n @example bool hc = webui_is_high_contrast();"]
+    pub fn webui_is_high_contrast() -> bool;
+}
+extern "C" {
+    #[doc = " @brief Check if a web browser is installed.\n\n @return Returns True if the specified browser is available\n\n @example bool status = webui_browser_exist(Chrome);"]
+    pub fn webui_browser_exist(browser: usize) -> bool;
 }
 extern "C" {
     #[doc = " @brief Wait until all opened windows get closed.\n\n @example webui_wait();"]
     pub fn webui_wait();
 }
 extern "C" {
-    #[doc = " @brief Close a specific window only. The window object will still exist.\n\n @param window The window number\n\n @example webui_close(myWindow);"]
+    #[doc = " @brief Wait asynchronously until all opened windows get closed.\n\n @return Returns True if more windows are still opened, False otherwise.\n\n @example while (webui_wait_async()) {}"]
+    pub fn webui_wait_async() -> bool;
+}
+extern "C" {
+    #[doc = " @brief Close a specific window only. The window object will still exist. All clients.\n\n @param window The window number\n\n @example webui_close(myWindow);"]
     pub fn webui_close(window: usize);
+}
+extern "C" {
+    #[doc = " @brief Minimize a WebView window.\n\n @param window The window number\n\n @example webui_minimize(myWindow);"]
+    pub fn webui_minimize(window: usize);
+}
+extern "C" {
+    #[doc = " @brief Maximize a WebView window.\n\n @param window The window number\n\n @example webui_maximize(myWindow);"]
+    pub fn webui_maximize(window: usize);
+}
+extern "C" {
+    #[doc = " @brief Close a specific client.\n\n @param e The event struct\n\n @example webui_close_client(e);"]
+    pub fn webui_close_client(e: *mut webui_event_t);
 }
 extern "C" {
     #[doc = " @brief Close a specific window and free all memory resources.\n\n @param window The window number\n\n @example webui_destroy(myWindow);"]
@@ -66,11 +149,22 @@ extern "C" {
     pub fn webui_set_root_folder(window: usize, path: *const ::std::os::raw::c_char) -> bool;
 }
 extern "C" {
+    #[doc = " @brief Set custom browser folder path.\n\n @param path The browser folder path\n\n @example webui_set_browser_folder(\"/home/Foo/Bar/\");"]
+    pub fn webui_set_browser_folder(path: *const ::std::os::raw::c_char);
+}
+extern "C" {
     #[doc = " @brief Set the web-server root folder path for all windows. Should be used\n before `webui_show()`.\n\n @param path The local folder full path\n\n @example webui_set_default_root_folder(\"/home/Foo/Bar/\");"]
     pub fn webui_set_default_root_folder(path: *const ::std::os::raw::c_char) -> bool;
 }
 extern "C" {
-    #[doc = " @brief Set a custom handler to serve files.\n\n @param window The window number\n @param handler The handler function: `void myHandler(const char* filename,\n int* length)`\n\n @return Returns a unique bind ID.\n\n @example webui_set_file_handler(myWindow, myHandlerFunction);"]
+    #[doc = " @brief Set a callback to catch the close event of the WebView window.\n Must return `false` to prevent the close event, `true` otherwise.\n\n @example webui_set_close_handler_wv(myWindow, myCloseEvent);"]
+    pub fn webui_set_close_handler_wv(
+        window: usize,
+        close_handler: ::std::option::Option<unsafe extern "C" fn(window: usize) -> bool>,
+    );
+}
+extern "C" {
+    #[doc = " @brief Set a custom handler to serve files. This custom handler should\n return full HTTP header and body.\n\n @param window The window number\n @param handler The handler function: `const void* myHandler(const char* filename, int* length)`\n\n @example webui_set_file_handler(myWindow, myHandlerFunction);"]
     pub fn webui_set_file_handler(
         window: usize,
         handler: ::std::option::Option<
@@ -79,6 +173,27 @@ extern "C" {
                 length: *mut ::std::os::raw::c_int,
             ) -> *const ::std::os::raw::c_void,
         >,
+    );
+}
+extern "C" {
+    #[doc = " @brief Set a custom handler to serve files. This custom handler should\n return full HTTP header and body.\n\n @param window The window number\n @param handler The handler function: `const void* myHandler(size_t window, const char* filename, int* length)`\n\n @example webui_set_file_handler_window(myWindow, myHandlerFunction);"]
+    pub fn webui_set_file_handler_window(
+        window: usize,
+        handler: ::std::option::Option<
+            unsafe extern "C" fn(
+                window: usize,
+                filename: *const ::std::os::raw::c_char,
+                length: *mut ::std::os::raw::c_int,
+            ) -> *const ::std::os::raw::c_void,
+        >,
+    );
+}
+extern "C" {
+    #[doc = " @brief Use this API to set a file handler response for async responses.\n\n @param window The window number\n @param response The response buffer\n @param length The response size\n\n @example webui_interface_set_response_file_handler(myWindow, buffer, 1024);"]
+    pub fn webui_interface_set_response_file_handler(
+        window: usize,
+        response: *const ::std::os::raw::c_void,
+        length: ::std::os::raw::c_int,
     );
 }
 extern "C" {
@@ -114,9 +229,26 @@ extern "C" {
     pub fn webui_malloc(size: usize) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
-    #[doc = " @brief Safely send raw data to the UI.\n\n @param window The window number\n @param function The JavaScript function to receive raw data: `function\n myFunc(myData){}`\n @param raw The raw data buffer\n @param size The raw data size in bytes\n\n @example webui_send_raw(myWindow, \"myJavascriptFunction\", myBuffer, 64);"]
+    #[doc = " @brief Copy raw data.\n\n @param dest Destination memory pointer\n @param src Source memory pointer\n @param count Bytes to copy\n\n @example webui_memcpy(myBuffer, myData, 64);"]
+    pub fn webui_memcpy(
+        dest: *mut ::std::os::raw::c_void,
+        src: *mut ::std::os::raw::c_void,
+        count: usize,
+    );
+}
+extern "C" {
+    #[doc = " @brief Safely send raw data to the UI. All clients.\n\n @param window The window number\n @param function The JavaScript function to receive raw data: `function\n myFunc(myData){}`\n @param raw The raw data buffer\n @param size The raw data size in bytes\n\n @example webui_send_raw(myWindow, \"myJavaScriptFunc\", myBuffer, 64);"]
     pub fn webui_send_raw(
         window: usize,
+        function: *const ::std::os::raw::c_char,
+        raw: *const ::std::os::raw::c_void,
+        size: usize,
+    );
+}
+extern "C" {
+    #[doc = " @brief Safely send raw data to the UI. Single client.\n\n @param e The event struct\n @param function The JavaScript function to receive raw data: `function\n myFunc(myData){}`\n @param raw The raw data buffer\n @param size The raw data size in bytes\n\n @example webui_send_raw_client(e, \"myJavaScriptFunc\", myBuffer, 64);"]
+    pub fn webui_send_raw_client(
+        e: *mut webui_event_t,
         function: *const ::std::os::raw::c_char,
         raw: *const ::std::os::raw::c_void,
         size: usize,
@@ -135,8 +267,20 @@ extern "C" {
     );
 }
 extern "C" {
+    #[doc = " @brief Set the window minimum size.\n\n @param window The window number\n @param width The window minimum width\n @param height The window minimum height\n\n @example webui_set_minimum_size(myWindow, 800, 600);"]
+    pub fn webui_set_minimum_size(
+        window: usize,
+        width: ::std::os::raw::c_uint,
+        height: ::std::os::raw::c_uint,
+    );
+}
+extern "C" {
     #[doc = " @brief Set the window position.\n\n @param window The window number\n @param x The window X\n @param y The window Y\n\n @example webui_set_position(myWindow, 100, 100);"]
     pub fn webui_set_position(window: usize, x: ::std::os::raw::c_uint, y: ::std::os::raw::c_uint);
+}
+extern "C" {
+    #[doc = " @brief Centers the window on the screen. Works better with WebView.\n\n @param window The window number\n\n @example webui_set_center(myWindow);"]
+    pub fn webui_set_center(window: usize);
 }
 extern "C" {
     #[doc = " @brief Set the web browser profile to use. An empty `name` and `path` means\n the default user profile. Need to be called before `webui_show()`.\n\n @param window The window number\n @param name The web browser profile name\n @param path The web browser profile full path\n\n @example webui_set_profile(myWindow, \"Bar\", \"/Home/Foo/Bar\"); |\n webui_set_profile(myWindow, \"\", \"\");"]
@@ -151,16 +295,24 @@ extern "C" {
     pub fn webui_set_proxy(window: usize, proxy_server: *const ::std::os::raw::c_char);
 }
 extern "C" {
-    #[doc = " @brief Get the full current URL.\n\n @param window The window number\n\n @return Returns the full URL string\n\n @example const char* url = webui_get_url(myWindow);"]
+    #[doc = " @brief Get current URL of a running window.\n\n @param window The window number\n\n @return Returns the full URL string\n\n @example const char* url = webui_get_url(myWindow);"]
     pub fn webui_get_url(window: usize) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " @brief Open an URL in the native default web browser.\n\n @param url The URL to open\n\n @example webui_open_url(\"https://webui.me\");"]
+    pub fn webui_open_url(url: *const ::std::os::raw::c_char);
 }
 extern "C" {
     #[doc = " @brief Allow a specific window address to be accessible from a public network\n\n @param window The window number\n @param status True or False\n\n @example webui_set_public(myWindow, true);"]
     pub fn webui_set_public(window: usize, status: bool);
 }
 extern "C" {
-    #[doc = " @brief Navigate to a specific URL\n\n @param window The window number\n @param url Full HTTP URL\n\n @example webui_navigate(myWindow, \"http://domain.com\");"]
+    #[doc = " @brief Navigate to a specific URL. All clients.\n\n @param window The window number\n @param url Full HTTP URL\n\n @example webui_navigate(myWindow, \"http://domain.com\");"]
     pub fn webui_navigate(window: usize, url: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    #[doc = " @brief Navigate to a specific URL. Single client.\n\n @param e The event struct\n @param url Full HTTP URL\n\n @example webui_navigate_client(e, \"http://domain.com\");"]
+    pub fn webui_navigate_client(e: *mut webui_event_t, url: *const ::std::os::raw::c_char);
 }
 extern "C" {
     #[doc = " @brief Free all memory resources. Should be called only at the end.\n\n @example\n webui_wait();\n webui_clean();"]
@@ -183,8 +335,58 @@ extern "C" {
     pub fn webui_get_child_process_id(window: usize) -> usize;
 }
 extern "C" {
-    #[doc = " @brief Set a custom web-server network port to be used by WebUI.\n This can be useful to determine the HTTP link of `webui.js` in case\n you are trying to use WebUI with an external web-server like NGNIX\n\n @param window The window number\n @param port The web-server network port WebUI should use\n\n @return Returns True if the port is free and usable by WebUI\n\n @example bool ret = webui_set_port(myWindow, 8080);"]
+    #[doc = " @brief Gets Win32 window HWND.\n\n @param window The window number\n\n @return Returns the window hwnd as void*\n\n @example HWND hwnd = webui_win32_get_hwnd(myWindow);"]
+    pub fn webui_win32_get_hwnd(window: usize) -> *mut ::std::os::raw::c_void;
+}
+extern "C" {
+    #[doc = " @brief Get window HWND (Win32) or GtkWindow (Linux).\n\n @param window The window number\n\n @return Returns the window handle as void*\n\n @example void* hwnd = webui_get_hwnd(myWindow);"]
+    pub fn webui_get_hwnd(window: usize) -> *mut ::std::os::raw::c_void;
+}
+extern "C" {
+    #[doc = " @brief Get the network port of a running window.\n\n @param window The window number\n\n @return Returns the network port of the window\n\n @example size_t port = webui_get_port(myWindow);"]
+    pub fn webui_get_port(window: usize) -> usize;
+}
+extern "C" {
+    #[doc = " @brief Set a custom web-server/websocket network port to be used by WebUI.\n\n @param window The window number\n @param port The web-server network port WebUI should use\n\n @return Returns True if the port is free and usable by WebUI\n\n @example bool ret = webui_set_port(myWindow, 8080);"]
     pub fn webui_set_port(window: usize, port: usize) -> bool;
+}
+extern "C" {
+    #[doc = " @brief Get an available usable free network port.\n\n @return Returns a free port\n\n @example size_t port = webui_get_free_port();"]
+    pub fn webui_get_free_port() -> usize;
+}
+extern "C" {
+    #[doc = " @brief Set a custom logger function.\n\n @example webui_set_logger(myLogger, NULL);"]
+    pub fn webui_set_logger(
+        func: ::std::option::Option<
+            unsafe extern "C" fn(
+                level: usize,
+                log: *const ::std::os::raw::c_char,
+                user_data: *mut ::std::os::raw::c_void,
+            ),
+        >,
+        user_data: *mut ::std::os::raw::c_void,
+    );
+}
+extern "C" {
+    #[doc = " @brief Control the WebUI behaviour. It's recommended to be called at the beginning.\n\n @param option The desired option from `webui_config` enum\n @param status The status of the option, `true` or `false`\n\n @example webui_set_config(show_wait_connection, false);"]
+    pub fn webui_set_config(option: usize, status: bool);
+}
+extern "C" {
+    #[doc = " @brief Control if UI events coming from this window should be processed\n one at a time in a single blocking thread `True`, or process every event in\n a new non-blocking thread `False`.\n\n @param window The window number\n @param status The blocking status `true` or `false`\n\n @example webui_set_event_blocking(myWindow, true);"]
+    pub fn webui_set_event_blocking(window: usize, status: bool);
+}
+extern "C" {
+    #[doc = " @brief Make a WebView window frameless.\n\n @param window The window number\n @param status The frameless status `true` or `false`\n\n @example webui_set_frameless(myWindow, true);"]
+    pub fn webui_set_frameless(window: usize, status: bool);
+}
+extern "C" {
+    #[doc = " @brief Make a WebView window transparent.\n\n @param window The window number\n @param status The transparency status `true` or `false`\n\n @example webui_set_transparent(myWindow, true);"]
+    pub fn webui_set_transparent(window: usize, status: bool);
+}
+extern "C" {
+    #[doc = " @brief Get the HTTP mime type of a file.\n\n @return Returns the HTTP mime string\n\n @example const char* mime = webui_get_mime_type(\"foo.png\");"]
+    pub fn webui_get_mime_type(file: *const ::std::os::raw::c_char)
+        -> *const ::std::os::raw::c_char;
 }
 extern "C" {
     #[doc = " @brief Set the SSL/TLS certificate and the private key content, both in PEM\n format. This works only with `webui-2-secure` library. If set empty WebUI\n will generate a self-signed certificate.\n\n @param certificate_pem The SSL/TLS certificate content in PEM format\n @param private_key_pem The private key content in PEM format\n\n @return Returns True if the certificate and the key are valid.\n\n @example bool ret = webui_set_tls_certificate(\"-----BEGIN\n CERTIFICATE-----\\n...\", \"-----BEGIN PRIVATE KEY-----\\n...\");"]
@@ -194,11 +396,15 @@ extern "C" {
     ) -> bool;
 }
 extern "C" {
-    #[doc = " @brief Run JavaScript without waiting for the response.\n\n @param window The window number\n @param script The JavaScript to be run\n\n @example webui_run(myWindow, \"alert('Hello');\");"]
+    #[doc = " @brief Run JavaScript without waiting for the response. All clients.\n\n @param window The window number\n @param script The JavaScript to be run\n\n @example webui_run(myWindow, \"alert('Hello');\");"]
     pub fn webui_run(window: usize, script: *const ::std::os::raw::c_char);
 }
 extern "C" {
-    #[doc = " @brief Run JavaScript and get the response back.\n Make sure your local buffer can hold the response.\n\n @param window The window number\n @param script The JavaScript to be run\n @param timeout The execution timeout\n @param buffer The local buffer to hold the response\n @param buffer_length The local buffer size\n\n @return Returns True if there is no execution error\n\n @example bool err = webui_script(myWindow, \"return 4 + 6;\", 0, myBuffer, myBufferSize);"]
+    #[doc = " @brief Run JavaScript without waiting for the response. Single client.\n\n @param e The event struct\n @param script The JavaScript to be run\n\n @example webui_run_client(e, \"alert('Hello');\");"]
+    pub fn webui_run_client(e: *mut webui_event_t, script: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    #[doc = " @brief Run JavaScript and get the response back. Work only in single client mode.\n Make sure your local buffer can hold the response.\n\n @param window The window number\n @param script The JavaScript to be run\n @param timeout The execution timeout in seconds\n @param buffer The local buffer to hold the response\n @param buffer_length The local buffer size\n\n @return Returns True if there is no execution error\n\n @example bool err = webui_script(myWindow, \"return 4 + 6;\", 0, myBuffer, myBufferSize);"]
     pub fn webui_script(
         window: usize,
         script: *const ::std::os::raw::c_char,
@@ -208,8 +414,22 @@ extern "C" {
     ) -> bool;
 }
 extern "C" {
-    #[doc = " @brief Chose between Deno and Nodejs as runtime for .js and .ts files.\n\n @param window The window number\n @param runtime Deno | Nodejs\n\n @example webui_set_runtime(myWindow, Deno);"]
+    #[doc = " @brief Run JavaScript and get the response back. Single client.\n Make sure your local buffer can hold the response.\n\n @param e The event struct\n @param script The JavaScript to be run\n @param timeout The execution timeout in seconds\n @param buffer The local buffer to hold the response\n @param buffer_length The local buffer size\n\n @return Returns True if there is no execution error\n\n @example bool err = webui_script_client(e, \"return 4 + 6;\", 0, myBuffer, myBufferSize);"]
+    pub fn webui_script_client(
+        e: *mut webui_event_t,
+        script: *const ::std::os::raw::c_char,
+        timeout: usize,
+        buffer: *mut ::std::os::raw::c_char,
+        buffer_length: usize,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " @brief Chose between Deno, Bun and Nodejs as runtime for .js and .ts files.\n\n @param window The window number\n @param runtime Deno | Bun | NodeJS | None\n\n @example webui_set_runtime(myWindow, Deno);"]
     pub fn webui_set_runtime(window: usize, runtime: usize);
+}
+extern "C" {
+    #[doc = " @brief Get how many arguments there are in an event.\n\n @param e The event struct\n\n @return Returns the arguments count.\n\n @example size_t count = webui_get_count(e);"]
+    pub fn webui_get_count(e: *mut webui_event_t) -> usize;
 }
 extern "C" {
     #[doc = " @brief Get an argument as integer at a specific index\n\n @param e The event struct\n @param index The argument position starting from 0\n\n @return Returns argument as integer\n\n @example long long int myNum = webui_get_int_at(e, 0);"]
@@ -218,6 +438,14 @@ extern "C" {
 extern "C" {
     #[doc = " @brief Get the first argument as integer\n\n @param e The event struct\n\n @return Returns argument as integer\n\n @example long long int myNum = webui_get_int(e);"]
     pub fn webui_get_int(e: *mut webui_event_t) -> ::std::os::raw::c_longlong;
+}
+extern "C" {
+    #[doc = " @brief Get an argument as float at a specific index.\n\n @param e The event struct\n @param index The argument position starting from 0\n\n @return Returns argument as float\n\n @example double myNum = webui_get_float_at(e, 0);"]
+    pub fn webui_get_float_at(e: *mut webui_event_t, index: usize) -> f64;
+}
+extern "C" {
+    #[doc = " @brief Get the first argument as float.\n\n @param e The event struct\n\n @return Returns argument as float\n\n @example double myNum = webui_get_float(e);"]
+    pub fn webui_get_float(e: *mut webui_event_t) -> f64;
 }
 extern "C" {
     #[doc = " @brief Get an argument as string at a specific index\n\n @param e The event struct\n @param index The argument position starting from 0\n\n @return Returns argument as string\n\n @example const char* myStr = webui_get_string_at(e, 0);"]
@@ -251,12 +479,24 @@ extern "C" {
     pub fn webui_return_int(e: *mut webui_event_t, n: ::std::os::raw::c_longlong);
 }
 extern "C" {
+    #[doc = " @brief Return the response to JavaScript as float.\n\n @param e The event struct\n @param f The float number to be send to JavaScript\n\n @example webui_return_float(e, 123.456);"]
+    pub fn webui_return_float(e: *mut webui_event_t, f: f64);
+}
+extern "C" {
     #[doc = " @brief Return the response to JavaScript as string.\n\n @param e The event struct\n @param n The string to be send to JavaScript\n\n @example webui_return_string(e, \"Response...\");"]
     pub fn webui_return_string(e: *mut webui_event_t, s: *const ::std::os::raw::c_char);
 }
 extern "C" {
     #[doc = " @brief Return the response to JavaScript as boolean.\n\n @param e The event struct\n @param n The boolean to be send to JavaScript\n\n @example webui_return_bool(e, true);"]
     pub fn webui_return_bool(e: *mut webui_event_t, b: bool);
+}
+extern "C" {
+    #[doc = " @brief Get the last WebUI error code.\n\n @example size_t err = webui_get_last_error_number();"]
+    pub fn webui_get_last_error_number() -> usize;
+}
+extern "C" {
+    #[doc = " @brief Get the last WebUI error message.\n\n @example const char* msg = webui_get_last_error_message();"]
+    pub fn webui_get_last_error_message() -> *const ::std::os::raw::c_char;
 }
 extern "C" {
     #[doc = " @brief Bind a specific HTML element click event with a function. Empty element means all events.\n\n @param window The window number\n @param element The element ID\n @param func The callback as myFunc(Window, EventType, Element, EventNumber, BindID)\n\n @return Returns unique bind ID\n\n @example size_t id = webui_interface_bind(myWindow, \"myID\", myCallback);"]
@@ -313,4 +553,61 @@ extern "C" {
 extern "C" {
     #[doc = " @brief Get the size in bytes of an argument at a specific index\n\n @param window The window number\n @param event_number The event number\n @param index The argument position\n\n @return Returns size in bytes\n\n @example size_t argLen = webui_interface_get_size_at(myWindow, e->event_number, 0);"]
     pub fn webui_interface_get_size_at(window: usize, event_number: usize, index: usize) -> usize;
+}
+extern "C" {
+    #[doc = " @brief Get an argument as float at a specific index.\n\n @param window The window number\n @param event_number The event number\n @param index The argument position\n\n @return Returns argument as float\n\n @example double myFloat = webui_interface_get_float_at(myWindow, e->event_number, 0);"]
+    pub fn webui_interface_get_float_at(
+        window: usize,
+        event_number: usize,
+        index: usize,
+    ) -> f64;
+}
+extern "C" {
+    #[doc = " @brief Show a window using embedded HTML, or a file. Single client.\n\n @param window The window number\n @param event_number The event number\n @param content The HTML, URL, Or a local file\n\n @return Returns True if showing the window is successed.\n\n @example webui_interface_show_client(myWindow, e->event_number, \"<html>...</html>\");"]
+    pub fn webui_interface_show_client(
+        window: usize,
+        event_number: usize,
+        content: *const ::std::os::raw::c_char,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " @brief Close a specific client.\n\n @param window The window number\n @param event_number The event number\n\n @example webui_interface_close_client(myWindow, e->event_number);"]
+    pub fn webui_interface_close_client(window: usize, event_number: usize);
+}
+extern "C" {
+    #[doc = " @brief Safely send raw data to the UI. Single client.\n\n @param window The window number\n @param event_number The event number\n @param function The JavaScript function to receive raw data\n @param raw The raw data buffer\n @param size The raw data size in bytes\n\n @example webui_interface_send_raw_client(myWindow, e->event_number, \"myFunc\", myBuffer, 64);"]
+    pub fn webui_interface_send_raw_client(
+        window: usize,
+        event_number: usize,
+        function: *const ::std::os::raw::c_char,
+        raw: *const ::std::os::raw::c_void,
+        size: usize,
+    );
+}
+extern "C" {
+    #[doc = " @brief Navigate to a specific URL. Single client.\n\n @param window The window number\n @param event_number The event number\n @param url Full HTTP URL\n\n @example webui_interface_navigate_client(myWindow, e->event_number, \"http://domain.com\");"]
+    pub fn webui_interface_navigate_client(
+        window: usize,
+        event_number: usize,
+        url: *const ::std::os::raw::c_char,
+    );
+}
+extern "C" {
+    #[doc = " @brief Run JavaScript without waiting for the response. Single client.\n\n @param window The window number\n @param event_number The event number\n @param script The JavaScript to be run\n\n @example webui_interface_run_client(myWindow, e->event_number, \"alert('Hello');\");"]
+    pub fn webui_interface_run_client(
+        window: usize,
+        event_number: usize,
+        script: *const ::std::os::raw::c_char,
+    );
+}
+extern "C" {
+    #[doc = " @brief Run JavaScript and get the response back. Single client.\n\n @param window The window number\n @param event_number The event number\n @param script The JavaScript to be run\n @param timeout The execution timeout in seconds\n @param buffer The local buffer to hold the response\n @param buffer_length The local buffer size\n\n @return Returns True if there is no execution error\n\n @example bool err = webui_interface_script_client(myWindow, e->event_number, \"return 4 + 6;\", 0, myBuffer, myBufferSize);"]
+    pub fn webui_interface_script_client(
+        window: usize,
+        event_number: usize,
+        script: *const ::std::os::raw::c_char,
+        timeout: usize,
+        buffer: *mut ::std::os::raw::c_char,
+        buffer_length: usize,
+    ) -> bool;
 }
