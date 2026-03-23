@@ -223,6 +223,113 @@ impl Event {
 
         js_obj
     }
+
+    fn as_raw(&self) -> webui_event_t {
+        webui_event_t {
+            window: self.window,
+            event_type: 0,
+            element: self.element,
+            event_number: self.event_number,
+            bind_id: self.bind_id,
+            client_id: 0,
+            connection_id: 0,
+            cookies: std::ptr::null_mut(),
+        }
+    }
+
+    pub fn get_count(&self) -> usize {
+        let mut raw = self.as_raw();
+        unsafe { webui_get_count(&mut raw) }
+    }
+
+    pub fn get_string(&self) -> String {
+        let mut raw = self.as_raw();
+        unsafe { char_to_string(webui_get_string(&mut raw)) }
+    }
+
+    pub fn get_string_at(&self, index: usize) -> String {
+        let mut raw = self.as_raw();
+        unsafe { char_to_string(webui_get_string_at(&mut raw, index)) }
+    }
+
+    pub fn get_int(&self) -> i64 {
+        let mut raw = self.as_raw();
+        unsafe { webui_get_int(&mut raw) }
+    }
+
+    pub fn get_int_at(&self, index: usize) -> i64 {
+        let mut raw = self.as_raw();
+        unsafe { webui_get_int_at(&mut raw, index) }
+    }
+
+    pub fn get_float(&self) -> f64 {
+        let mut raw = self.as_raw();
+        unsafe { webui_get_float(&mut raw) }
+    }
+
+    pub fn get_float_at(&self, index: usize) -> f64 {
+        let mut raw = self.as_raw();
+        unsafe { webui_get_float_at(&mut raw, index) }
+    }
+
+    pub fn get_bool(&self) -> bool {
+        let mut raw = self.as_raw();
+        unsafe { webui_get_bool(&mut raw) }
+    }
+
+    pub fn get_bool_at(&self, index: usize) -> bool {
+        let mut raw = self.as_raw();
+        unsafe { webui_get_bool_at(&mut raw, index) }
+    }
+
+    pub fn get_size(&self) -> usize {
+        let mut raw = self.as_raw();
+        unsafe { webui_get_size(&mut raw) }
+    }
+
+    pub fn get_size_at(&self, index: usize) -> usize {
+        let mut raw = self.as_raw();
+        unsafe { webui_get_size_at(&mut raw, index) }
+    }
+
+    pub fn get_bytes(&self) -> Vec<u8> {
+        let mut raw = self.as_raw();
+        unsafe {
+            let ptr = webui_get_string(&mut raw) as *const u8;
+            let len = webui_get_size(&mut raw);
+            std::slice::from_raw_parts(ptr, len).to_vec()
+        }
+    }
+
+    pub fn get_bytes_at(&self, index: usize) -> Vec<u8> {
+        let mut raw = self.as_raw();
+        unsafe {
+            let ptr = webui_get_string_at(&mut raw, index) as *const u8;
+            let len = webui_get_size_at(&mut raw, index);
+            std::slice::from_raw_parts(ptr, len).to_vec()
+        }
+    }
+
+    pub fn return_int(&self, value: i64) {
+        let mut raw = self.as_raw();
+        unsafe { webui_return_int(&mut raw, value) }
+    }
+
+    pub fn return_float(&self, value: f64) {
+        let mut raw = self.as_raw();
+        unsafe { webui_return_float(&mut raw, value) }
+    }
+
+    pub fn return_string(&self, value: &str) {
+        let mut raw = self.as_raw();
+        let c_str = CString::new(value).unwrap();
+        unsafe { webui_return_string(&mut raw, c_str.as_ptr()) }
+    }
+
+    pub fn return_bool(&self, value: bool) {
+        let mut raw = self.as_raw();
+        unsafe { webui_return_bool(&mut raw, value) }
+    }
 }
 
 pub struct Window {
@@ -261,15 +368,15 @@ impl Window {
         bind(self.id, element.as_ref(), func);
     }
 
-    pub fn run_js(&self, js: impl AsRef<str>) -> JavaScript {
+    pub fn run_js(&self, script: impl AsRef<str>, buffer_size: usize) -> JavaScript {
         let mut js = JavaScript {
             timeout: 0,
-            script: js.as_ref().to_string(),
+            script: script.as_ref().to_string(),
             error: false,
             data: "".to_string(),
         };
 
-        run_js(self.id, &mut js);
+        run_js_buffered(self.id, &mut js, if buffer_size == 0 { 1024 * 8 } else { buffer_size });
 
         js
     }
@@ -438,7 +545,9 @@ impl Window {
 
 impl Drop for Window {
     fn drop(&mut self) {
-        destroy(self.id);
+        // Note neccessary as WebUI already destroys the
+        // window when it is closed.
+        // destroy(self.id);
     }
 }
 
@@ -499,40 +608,21 @@ fn cstr_to_string(c: CString) -> String {
     s
 }
 
-pub fn run_js(win: usize, js: &mut JavaScript) {
-    /// The WebUI Script Interface
-    struct WebUIScriptIntf {
-        timeout: usize,
-        script: *mut i8,
-        error: bool,
-        data: *const i8,
-        length: usize,
-    }
-
+pub fn run_js_buffered(win: usize, js: &mut JavaScript, buffer_size: usize) {
     unsafe {
-        // Script String to i8/u8
-        let script_cpy = js.script.clone();
-        let script_c_str = CString::new(script_cpy).unwrap();
-        let script_c_char: *mut c_char = script_c_str.as_ptr() as *mut c_char;
+        let script_c_str = CString::new(js.script.clone()).unwrap();
+        let mut buffer = vec![0i8; buffer_size];
 
-        let wuisi = WebUIScriptIntf {
-            timeout: js.timeout,
-            script: script_c_char,
-            data: script_c_char,
-            error: false,
-            length: 0,
-        };
-
-        webui_script(
+        let ok = webui_script(
             win,
-            wuisi.script,
-            wuisi.timeout,
-            script_c_char,
-            wuisi.length,
+            script_c_str.as_ptr(),
+            js.timeout,
+            buffer.as_mut_ptr(),
+            buffer_size,
         );
 
-        js.error = wuisi.error;
-        js.data = char_to_string(wuisi.data);
+        js.error = !ok;
+        js.data = char_to_string(buffer.as_ptr());
     }
 }
 

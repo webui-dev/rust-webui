@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>WebUI - Serve a Folder Example (Rust)</title>
+    <style>
+      body {
+        font-family: 'Arial', sans-serif;
+        color: white;
+        background: linear-gradient(to right, #507d91, #1c596f, #022737);
+        text-align: center;
+        font-size: 18px;
+      }
+      button, input {
+        padding: 10px;
+        border-radius: 3px;
+        border: 1px solid #ccc;
+        box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+        transition: 0.2s;
+      }
+      button {
+        background: #3498db;
+        color: #fff;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      h1 { text-shadow: -7px 10px 7px rgb(67 57 57 / 76%); }
+      button:hover { background: #c9913d; }
+      a:link, a:active, a:visited { color: #fd5723; }
+      a:hover { color: #f0bcac; }
+    </style>
+  </head>
+  <body>
+    <h3>Serve a Folder Example (Rust)</h3>
+    <br />
+    <p>
+      This HTML file is served directly from disk.<br />
+      Click a link or button below to navigate.
+    </p>
+    <br />
+    <h4><a href="second.html">Second Page (link)</a></h4>
+    <br />
+    <button id="SwitchToSecondPage">Switch to Second Page (programmatic)</button>
+    <br /><br />
+    <button id="OpenNewWindow">Open Second Window</button>
+    <br />
+    <h4><a href="test.txt">Static embedded file example</a></h4>
+    <h4><a href="dynamic.html">Dynamic embedded file example</a></h4>
+  </body>
+
+  <!-- Connect this window to the backend -->
+  <script src="/webui.js"></script>
+</html>
