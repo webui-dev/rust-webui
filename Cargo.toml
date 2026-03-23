@@ -1,8 +1,12 @@
 [package]
 name = "webui-rs"
-version = "0.1.0"
+version = "2.5.0"
+edition = "2026"
 build = "build.rs"
-edition = "2021"
+authors = ["Hassan Draga"]
+license = "MIT"
+description = "Rust wrapper for the WebUI library — use any web browser as a GUI"
+repository = "https://github.com/webui-dev/rust-webui"
 
 [dependencies]
 lazy_static = "1.4.0"
