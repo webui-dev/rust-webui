@@ -688,6 +688,10 @@ pub fn get_best_browser(win: usize) -> usize {
     unsafe { webui_get_best_browser(win) }
 }
 
+pub fn set_kiosk(win: usize, status: bool) {
+    unsafe { webui_set_kiosk(win, status) }
+}
+
 pub fn show_wv(win: usize, content: impl AsRef<str> + Into<Vec<u8>>) -> bool {
     unsafe {
         let content_c_str = CString::new(content).unwrap();
