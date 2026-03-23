@@ -6,7 +6,6 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use webui_rs::webui;
-use webui_rs::webui::{Event, WebUIBrowser, WebUIEvent, WebUIConfig};
 
 static PRIVATE_WIN: AtomicUsize = AtomicUsize::new(0);
 static PUBLIC_WIN: AtomicUsize = AtomicUsize::new(0);
@@ -71,25 +70,25 @@ const PUBLIC_HTML: &str = r#"<!DOCTYPE html>
   </body>
 </html>"#;
 
-fn app_exit(_e: Event) {
+fn app_exit(_e: webui::Event) {
     webui::exit();
 }
 
-fn public_window_events(e: Event) {
+fn public_window_events(e: webui::Event) {
     let private = PRIVATE_WIN.load(Ordering::SeqCst);
     match e.event_type {
-        WebUIEvent::WebUiEventConnected => {
+        webui::EventType::Connected => {
             webui::run(private, "document.getElementById('Logs').value += 'New connection.\\n';");
         }
-        WebUIEvent::WebUiEventDisconnected => {
+        webui::EventType::Disconnected => {
             webui::run(private, "document.getElementById('Logs').value += 'Disconnected.\\n';");
         }
         _ => {}
     }
 }
 
-fn private_window_events(e: Event) {
-    if let WebUIEvent::WebUiEventConnected = e.event_type {
+fn private_window_events(e: webui::Event) {
+    if let webui::EventType::Connected = e.event_type {
         let private = PRIVATE_WIN.load(Ordering::SeqCst);
         let public = PUBLIC_WIN.load(Ordering::SeqCst);
 
@@ -111,7 +110,7 @@ fn private_window_events(e: Event) {
 fn main() {
 
     // Allow multiple connections to the same window
-    webui::set_config(WebUIConfig::MultiClient, true);
+    webui::set_config(webui::Config::MultiClient, true);
 
     // Create both windows before binding (creating a second window resets the callback table)
     let private = webui::Window::new();
@@ -126,7 +125,7 @@ fn main() {
     public.set_public(true);
     public.bind("", public_window_events); // bind all events
     public.set_port(9000);
-    public.show_browser(PUBLIC_HTML, WebUIBrowser::NoBrowser);
+    public.show_browser(PUBLIC_HTML, webui::Browser::NoBrowser);
 
     // Private window: localhost only
     private.bind("", private_window_events);

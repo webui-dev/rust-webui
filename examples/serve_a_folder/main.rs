@@ -7,9 +7,6 @@ use std::ffi::CStr;
 use std::os::raw::c_void;
 use std::sync::atomic::{AtomicI32, AtomicUsize, Ordering};
 use webui_rs::webui;
-use webui_rs::webui::bindgen::webui_malloc;
-use webui_rs::webui::{Event, WebUIEvent};
-
 
 // Folder containing index.html / second.html (resolved at compile time)
 const FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/serve_a_folder");
@@ -18,16 +15,16 @@ static MAIN_WIN: AtomicUsize = AtomicUsize::new(0);
 static SECOND_WIN: AtomicUsize = AtomicUsize::new(0);
 static DYNAMIC_COUNT: AtomicI32 = AtomicI32::new(0);
 
-fn exit_app(_e: Event) {
+fn exit_app(_e: webui::Event) {
     webui::exit();
 }
 
-fn events(e: Event) {
+fn events(e: webui::Event) {
     match e.event_type {
-        WebUIEvent::WebUiEventConnected => println!("Connected."),
-        WebUIEvent::WebUiEventDisconnected => println!("Disconnected."),
-        WebUIEvent::WebUiEventMouseClick => println!("Click."),
-        WebUIEvent::WebUiEventNavigation => {
+        webui::EventType::Connected => println!("Connected."),
+        webui::EventType::Disconnected => println!("Disconnected."),
+        webui::EventType::MouseClick => println!("Click."),
+        webui::EventType::Navigation => {
             // WebUI intercepts href clicks and sends them here when "" is bound.
             // We read the target URL and allow navigation.
             let url = e.get_string();
@@ -38,11 +35,11 @@ fn events(e: Event) {
     }
 }
 
-fn switch_to_second_page(e: Event) {
+fn switch_to_second_page(e: webui::Event) {
     webui::show(e.window, "second.html");
 }
 
-fn show_second_window(_e: Event) {
+fn show_second_window(_e: webui::Event) {
     let win = SECOND_WIN.load(Ordering::SeqCst);
     webui::show(win, "second.html");
 }
@@ -78,15 +75,7 @@ unsafe extern "C" fn my_files_handler(filename: *const i8, length: *mut i32) -> 
             body
         );
 
-        // Allocate via WebUI so it frees the buffer automatically after serving
-        let buf = webui_malloc(response.len() + 1) as *mut u8;
-        std::ptr::copy_nonoverlapping(response.as_ptr(), buf, response.len());
-        *buf.add(response.len()) = 0;
-
-        if !length.is_null() {
-            *length = response.len() as i32;
-        }
-        return buf as *const c_void;
+        return webui::malloc(&response, length);
     }
 
     // Let WebUI serve everything else from the root folder

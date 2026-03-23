@@ -1,7 +1,6 @@
 // WebUI Rust - Call JavaScript from Rust Example
 
 use webui_rs::webui;
-use webui_rs::webui::{Event, WebUIConfig};
 
 const HTML: &str = r#"<!DOCTYPE html>
 <html>
@@ -71,11 +70,11 @@ const HTML: &str = r#"<!DOCTYPE html>
   </body>
 </html>"#;
 
-fn my_function_exit(_e: Event) {
+fn my_function_exit(_e: webui::Event) {
     webui::exit();
 }
 
-fn my_function_count(e: Event) {
+fn my_function_count(e: webui::Event) {
     let window = e.get_window();
 
     // Run JS and capture return value.
@@ -103,7 +102,7 @@ fn my_function_count(e: Event) {
 
 fn main() {
     // Process UI events one at a time so count stays consistent
-    webui::set_config(WebUIConfig::UiEventBlocking, true);
+    webui::set_config(webui::Config::UiEventBlocking, true);
 
     let window = webui::Window::new();
     window.bind("my_function_count", my_function_count);

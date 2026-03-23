@@ -34,7 +34,7 @@ pub type size_t = ::std::os::raw::c_ulong;
 pub type wchar_t = ::std::os::raw::c_int;
 
 // Browsers
-pub enum WebUIBrowser {
+pub enum Browser {
     NoBrowser = 0,
     AnyBrowser = 1,
     Chrome,
@@ -51,29 +51,29 @@ pub enum WebUIBrowser {
     Webview,
 }
 
-impl Clone for WebUIBrowser {
+impl Clone for Browser {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl Copy for WebUIBrowser {}
+impl Copy for Browser {}
 
-impl WebUIBrowser {
+impl Browser {
     pub fn to_usize(&self) -> usize {
         *self as usize
     }
 }
 
 // Impl equality operator
-impl PartialEq for WebUIBrowser {
+impl PartialEq for Browser {
     fn eq(&self, other: &Self) -> bool {
         self.to_usize() == other.to_usize()
     }
 }
 
 // Runtimes
-pub enum WebUIRuntime {
+pub enum Runtime {
     None = 0,
     Deno = 1,
     NodeJS = 2,
@@ -81,29 +81,29 @@ pub enum WebUIRuntime {
 }
 
 // Events
-pub enum WebUIEvent {
-    WebUiEventDisconnected = 0,
-    WebUiEventConnected = 1,
-    WebUiEventMouseClick = 2,
-    WebUiEventNavigation = 3,
-    WebUiEventCallback = 4,
+pub enum EventType {
+    Disconnected = 0,
+    Connected = 1,
+    MouseClick = 2,
+    Navigation = 3,
+    Callback = 4,
 }
 
-impl WebUIEvent {
-    pub fn from_usize(value: usize) -> WebUIEvent {
+impl EventType {
+    pub fn from_usize(value: usize) -> EventType {
         match value {
-            0 => WebUIEvent::WebUiEventDisconnected,
-            1 => WebUIEvent::WebUiEventConnected,
-            2 => WebUIEvent::WebUiEventMouseClick,
-            3 => WebUIEvent::WebUiEventNavigation,
-            4 => WebUIEvent::WebUiEventCallback,
-            _ => WebUIEvent::WebUiEventCallback,
+            0 => EventType::Disconnected,
+            1 => EventType::Connected,
+            2 => EventType::MouseClick,
+            3 => EventType::Navigation,
+            4 => EventType::Callback,
+            _ => EventType::Callback,
         }
     }
 }
 
 // Config options
-pub enum WebUIConfig {
+pub enum Config {
     ShowWaitConnection = 0,
     UiEventBlocking = 1,
     FolderMonitor = 2,
@@ -112,21 +112,21 @@ pub enum WebUIConfig {
     AsynchronousResponse = 5,
 }
 
-impl WebUIConfig {
+impl Config {
     pub fn to_usize(&self) -> usize {
         match self {
-            WebUIConfig::ShowWaitConnection => 0,
-            WebUIConfig::UiEventBlocking => 1,
-            WebUIConfig::FolderMonitor => 2,
-            WebUIConfig::MultiClient => 3,
-            WebUIConfig::UseCookies => 4,
-            WebUIConfig::AsynchronousResponse => 5,
+            Config::ShowWaitConnection => 0,
+            Config::UiEventBlocking => 1,
+            Config::FolderMonitor => 2,
+            Config::MultiClient => 3,
+            Config::UseCookies => 4,
+            Config::AsynchronousResponse => 5,
         }
     }
 }
 
 // Logger levels
-pub enum WebUILoggerLevel {
+pub enum LoggerLevel {
     Debug = 0,
     Info = 1,
     Error = 2,
@@ -142,7 +142,7 @@ pub struct JavaScript {
 // Window, EventType, Element, EventNumber, BindID
 pub struct Event {
     pub window: usize,
-    pub event_type: WebUIEvent,
+    pub event_type: EventType,
     pub element: *mut c_char,
     pub event_number: usize,
     pub bind_id: usize,
@@ -356,7 +356,7 @@ impl Window {
         show(self.id, content.as_ref())
     }
 
-    pub fn show_browser(&self, content: impl AsRef<str>, browser: WebUIBrowser) -> bool {
+    pub fn show_browser(&self, content: impl AsRef<str>, browser: Browser) -> bool {
         show_browser(self.id, content.as_ref(), browser)
     }
 
@@ -399,7 +399,7 @@ impl Window {
         set_file_handler_window(self.id, handler);
     }
 
-    pub fn set_runtime(&self, runtime: WebUIRuntime) {
+    pub fn set_runtime(&self, runtime: Runtime) {
         set_runtime(self.id, runtime);
     }
 
@@ -664,7 +664,7 @@ pub fn show(win: usize, content: impl AsRef<str> + Into<Vec<u8>>) -> bool {
 pub fn show_browser(
     win: usize,
     content: impl AsRef<str> + Into<Vec<u8>>,
-    browser: WebUIBrowser,
+    browser: Browser,
 ) -> bool {
     let content_c_str = CString::new(content).unwrap();
     let content_c_char: *const c_char = content_c_str.as_ptr() as *const c_char;
@@ -687,7 +687,7 @@ pub fn set_icon(win: usize, icon: &str, kind: &str) {
     }
 }
 
-pub fn set_runtime(win: usize, runtime: WebUIRuntime) {
+pub fn set_runtime(win: usize, runtime: Runtime) {
     unsafe {
         webui_set_runtime(win, runtime as usize);
     }
@@ -721,7 +721,7 @@ unsafe extern "C" fn events_handler(
 
     let evt = Event {
         window,
-        event_type: WebUIEvent::from_usize(event_type),
+        event_type: EventType::from_usize(event_type),
         element,
         event_number,
         bind_id,
@@ -821,7 +821,7 @@ pub fn is_high_contrast() -> bool {
     unsafe { webui_is_high_contrast() }
 }
 
-pub fn browser_exist(browser: WebUIBrowser) -> bool {
+pub fn browser_exist(browser: Browser) -> bool {
     unsafe { webui_browser_exist(browser as usize) }
 }
 
@@ -920,7 +920,7 @@ pub fn get_free_port() -> usize {
     unsafe { webui_get_free_port() }
 }
 
-pub fn set_config(option: WebUIConfig, status: bool) {
+pub fn set_config(option: Config, status: bool) {
     unsafe { webui_set_config(option.to_usize(), status) }
 }
 
@@ -1029,4 +1029,19 @@ pub fn delete_all_profiles() {
 
 pub fn delete_profile(win: usize) {
     unsafe { webui_delete_profile(win) }
+}
+
+/// Allocate a response buffer owned by WebUI so it frees the memory after serving.
+/// Use this inside a `set_file_handler` callback to return dynamic content.
+pub unsafe fn malloc(
+    response: &str,
+    length: *mut i32,
+) -> *const std::os::raw::c_void {
+    let buf = webui_malloc(response.len() + 1) as *mut u8;
+    std::ptr::copy_nonoverlapping(response.as_ptr(), buf, response.len());
+    *buf.add(response.len()) = 0;
+    if !length.is_null() {
+        *length = response.len() as i32;
+    }
+    buf as *const std::os::raw::c_void
 }

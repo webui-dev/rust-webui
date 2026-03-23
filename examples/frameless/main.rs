@@ -1,7 +1,6 @@
 // WebUI Rust - Frameless Window Example
 
 use webui_rs::webui;
-use webui_rs::webui::Event;
 
 const HTML: &str = r#"<html>
   <head>
@@ -92,11 +91,11 @@ const HTML: &str = r#"<html>
   </body>
 </html>"#;
 
-fn minimize(e: Event) {
+fn minimize(e: webui::Event) {
     e.get_window().minimize();
 }
 
-fn close_win(e: Event) {
+fn close_win(e: webui::Event) {
     e.get_window().close();
 }
 

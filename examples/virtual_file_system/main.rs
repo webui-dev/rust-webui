@@ -10,13 +10,11 @@
 use std::ffi::CStr;
 use std::os::raw::c_void;
 use webui_rs::webui;
-use webui_rs::webui::bindgen::webui_malloc;
-use webui_rs::webui::Event;
 
 // Embed files at compile time
 const INDEX_HTML: &str = include_str!("index.html");
 
-fn exit_app(_e: Event) {
+fn exit_app(_e: webui::Event) {
     webui::exit();
 }
 
@@ -38,15 +36,7 @@ unsafe extern "C" fn vfs(filename: *const i8, length: *mut i32) -> *const c_void
             body.len()
         );
 
-        // Allocate via WebUI — it will free the buffer automatically after serving
-        let buf = webui_malloc(response.len() + 1) as *mut u8;
-        std::ptr::copy_nonoverlapping(response.as_ptr(), buf, response.len());
-        *buf.add(response.len()) = 0;
-
-        if !length.is_null() {
-            *length = response.len() as i32;
-        }
-        return buf as *const c_void;
+        return webui::malloc(&response, length);
     }
 
     // Return NULL to let WebUI handle unknown requests (e.g. webui.js itself)
