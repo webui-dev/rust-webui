@@ -97,7 +97,7 @@ fn my_function_count(e: webui::Event) {
 
     // Run JS without capturing return value (faster)
     // No buffer needed since this is a fire and forget call.
-    window.run(&format!("SetCount({next});"));
+    window.run(format!("SetCount({next});"));
 }
 
 fn main() {

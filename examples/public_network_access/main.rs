@@ -78,10 +78,16 @@ fn public_window_events(e: webui::Event) {
     let private = PRIVATE_WIN.load(Ordering::SeqCst);
     match e.event_type {
         webui::EventType::Connected => {
-            webui::run(private, "document.getElementById('Logs').value += 'New connection.\\n';");
+            webui::run(
+                private,
+                "document.getElementById('Logs').value += 'New connection.\\n';",
+            );
         }
         webui::EventType::Disconnected => {
-            webui::run(private, "document.getElementById('Logs').value += 'Disconnected.\\n';");
+            webui::run(
+                private,
+                "document.getElementById('Logs').value += 'Disconnected.\\n';",
+            );
         }
         _ => {}
     }
@@ -95,12 +101,14 @@ fn private_window_events(e: webui::Event) {
         let port = webui::get_port(public);
         let url = webui::get_url(public);
 
-        webui::run(private, format!(
-            "document.getElementById('urlSpan1').innerHTML = 'http://localhost:{port}';"
-        ));
-        webui::run(private, format!(
-            "document.getElementById('urlSpan2').innerHTML = '{url}';"
-        ));
+        webui::run(
+            private,
+            format!("document.getElementById('urlSpan1').innerHTML = 'http://localhost:{port}';"),
+        );
+        webui::run(
+            private,
+            format!("document.getElementById('urlSpan2').innerHTML = '{url}';"),
+        );
         webui::run(private, format!(
             "document.getElementById('urlSpan3').innerHTML = 'http://[ANY_IP_OF_THIS_MACHINE]:{port}';"
         ));
@@ -108,7 +116,6 @@ fn private_window_events(e: webui::Event) {
 }
 
 fn main() {
-
     // Allow multiple connections to the same window
     webui::set_config(webui::Config::MultiClient, true);
 

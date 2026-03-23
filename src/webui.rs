@@ -376,7 +376,15 @@ impl Window {
             data: "".to_string(),
         };
 
-        run_js_buffered(self.id, &mut js, if buffer_size == 0 { 1024 * 8 } else { buffer_size });
+        run_js_buffered(
+            self.id,
+            &mut js,
+            if buffer_size == 0 {
+                1024 * 8
+            } else {
+                buffer_size
+            },
+        );
 
         js
     }
@@ -447,10 +455,7 @@ impl Window {
         set_root_folder(self.id, path.as_ref())
     }
 
-    pub fn set_close_handler_wv(
-        &self,
-        handler: unsafe extern "C" fn(usize) -> bool,
-    ) {
+    pub fn set_close_handler_wv(&self, handler: unsafe extern "C" fn(usize) -> bool) {
         set_close_handler_wv(self.id, handler);
     }
 
@@ -795,7 +800,7 @@ pub fn start_server(win: usize, content: impl AsRef<str> + Into<Vec<u8>>) -> Str
         let content_c_str = CString::new(content).unwrap();
         let content_c_char: *const c_char = content_c_str.as_ptr() as *const c_char;
         let url = webui_start_server(win, content_c_char);
-        char_to_string(url as *const i8)
+        char_to_string(url)
     }
 }
 
@@ -882,7 +887,7 @@ pub fn open_url(url: impl AsRef<str> + Into<Vec<u8>>) {
 pub fn get_url(win: usize) -> String {
     unsafe {
         let url = webui_get_url(win);
-        char_to_string(url as *const i8)
+        char_to_string(url)
     }
 }
 
@@ -939,11 +944,18 @@ pub fn set_transparent(win: usize, status: bool) {
 pub fn get_mime_type(file: impl AsRef<str> + Into<Vec<u8>>) -> String {
     let file_c_str = CString::new(file).unwrap();
     let file_c_char: *const c_char = file_c_str.as_ptr() as *const c_char;
-    unsafe { char_to_string(webui_get_mime_type(file_c_char) as *const i8) }
+    unsafe { char_to_string(webui_get_mime_type(file_c_char)) }
 }
 
-pub fn memcpy(dest: *mut std::os::raw::c_void, src: *mut std::os::raw::c_void, count: usize) {
-    unsafe { webui_memcpy(dest, src, count) }
+/// # Safety
+///
+/// `dest` and `src` must be valid non-overlapping pointers to at least `count` bytes.
+pub unsafe fn memcpy(
+    dest: *mut std::os::raw::c_void,
+    src: *mut std::os::raw::c_void,
+    count: usize,
+) {
+    webui_memcpy(dest, src, count)
 }
 
 pub fn send_raw(win: usize, func: impl AsRef<str> + Into<Vec<u8>>, raw: &[u8]) {
@@ -996,7 +1008,7 @@ pub fn get_last_error_number() -> usize {
 }
 
 pub fn get_last_error_message() -> String {
-    unsafe { char_to_string(webui_get_last_error_message() as *const i8) }
+    unsafe { char_to_string(webui_get_last_error_message()) }
 }
 
 pub fn set_default_root_folder(path: impl AsRef<str> + Into<Vec<u8>>) -> bool {
@@ -1033,10 +1045,11 @@ pub fn delete_profile(win: usize) {
 
 /// Allocate a response buffer owned by WebUI so it frees the memory after serving.
 /// Use this inside a `set_file_handler` callback to return dynamic content.
-pub unsafe fn malloc(
-    response: &str,
-    length: *mut i32,
-) -> *const std::os::raw::c_void {
+///
+/// # Safety
+///
+/// `length` must be either null or a valid pointer to a writable `i32`.
+pub unsafe fn malloc(response: &str, length: *mut i32) -> *const std::os::raw::c_void {
     let buf = webui_malloc(response.len() + 1) as *mut u8;
     std::ptr::copy_nonoverlapping(response.as_ptr(), buf, response.len());
     *buf.add(response.len()) = 0;

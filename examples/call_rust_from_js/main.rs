@@ -68,23 +68,23 @@ const HTML: &str = r#"<!DOCTYPE html>
 
 fn my_function_string(e: webui::Event) {
     // JavaScript: my_function_string('Hello', 'World')
-    println!("my_function_string 1: {}", e.get_string());    // Hello
+    println!("my_function_string 1: {}", e.get_string()); // Hello
     println!("my_function_string 2: {}", e.get_string_at(1)); // World
 }
 
 fn my_function_integer(e: webui::Event) {
     // JavaScript: my_function_integer(123, 456, 789, 12345.6789)
     println!("my_function_integer: {} arguments", e.get_count());
-    println!("my_function_integer 1: {}", e.get_int());        // 123
-    println!("my_function_integer 2: {}", e.get_int_at(1));    // 456
-    println!("my_function_integer 3: {}", e.get_int_at(2));    // 789
-    println!("my_function_integer 4: {}", e.get_float_at(3));  // 12345.6789
+    println!("my_function_integer 1: {}", e.get_int()); // 123
+    println!("my_function_integer 2: {}", e.get_int_at(1)); // 456
+    println!("my_function_integer 3: {}", e.get_int_at(2)); // 789
+    println!("my_function_integer 4: {}", e.get_float_at(3)); // 12345.6789
 }
 
 fn my_function_boolean(e: webui::Event) {
     // JavaScript: my_function_boolean(true, false)
-    println!("my_function_boolean 1: {}", e.get_bool());       // true
-    println!("my_function_boolean 2: {}", e.get_bool_at(1));   // false
+    println!("my_function_boolean 1: {}", e.get_bool()); // true
+    println!("my_function_boolean 2: {}", e.get_bool_at(1)); // false
 }
 
 fn my_function_raw_binary(e: webui::Event) {
@@ -99,7 +99,10 @@ fn my_function_raw_binary(e: webui::Event) {
     println!();
 
     let valid = bytes2.first() == Some(&0xA1) && bytes2.last() == Some(&0xA2);
-    println!("my_function_raw_binary 2 big ({} bytes): valid? {valid}", bytes2.len());
+    println!(
+        "my_function_raw_binary 2 big ({} bytes): valid? {valid}",
+        bytes2.len()
+    );
 }
 
 fn my_function_with_response(e: webui::Event) {

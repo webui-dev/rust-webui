@@ -54,10 +54,8 @@ extern "C" {
 }
 extern "C" {
     #[doc = " @brief Show a window using embedded HTML, or a file. Single client.\n\n @param e The event struct\n @param content The HTML, URL, Or a local file\n\n @return Returns True if showing the window is successed.\n\n @example webui_show_client(e, \"<html>...</html>\");"]
-    pub fn webui_show_client(
-        e: *mut webui_event_t,
-        content: *const ::std::os::raw::c_char,
-    ) -> bool;
+    pub fn webui_show_client(e: *mut webui_event_t, content: *const ::std::os::raw::c_char)
+        -> bool;
 }
 extern "C" {
     #[doc = " @brief Same as `webui_show()`. But using a specific web browser.\n\n @param window The window number\n @param content The HTML, Or a local file\n @param browser The web browser to be used\n\n @return Returns True if showing the window is successed.\n\n @example webui_show_browser(myWindow, \"<html>...</html>\", Chrome); |\n webui_show(myWindow, \"index.html\", Firefox);"]
@@ -76,10 +74,7 @@ extern "C" {
 }
 extern "C" {
     #[doc = " @brief Show a WebView window using embedded HTML, or a file.\n\n @param window The window number\n @param content The HTML, URL, Or a local file\n\n @return Returns True if showing the WebView window is successed.\n\n @example webui_show_wv(myWindow, \"<html>...</html>\");"]
-    pub fn webui_show_wv(
-        window: usize,
-        content: *const ::std::os::raw::c_char,
-    ) -> bool;
+    pub fn webui_show_wv(window: usize, content: *const ::std::os::raw::c_char) -> bool;
 }
 extern "C" {
     #[doc = " @brief Set the window in Kiosk mode (Full screen).\n\n @param window The window number\n @param status True or False\n\n @example webui_set_kiosk(myWindow, true);"]
@@ -91,10 +86,7 @@ extern "C" {
 }
 extern "C" {
     #[doc = " @brief Add a user-defined web browser's CLI parameters.\n\n @param window The window number\n @param params Command line parameters\n\n @example webui_set_custom_parameters(myWindow, \"--remote-debugging-port=9222\");"]
-    pub fn webui_set_custom_parameters(
-        window: usize,
-        params: *mut ::std::os::raw::c_char,
-    );
+    pub fn webui_set_custom_parameters(window: usize, params: *mut ::std::os::raw::c_char);
 }
 extern "C" {
     #[doc = " @brief Set the window with high-contrast support.\n\n @param window The window number\n @param status True or False\n\n @example webui_set_high_contrast(myWindow, true);"]
@@ -385,8 +377,9 @@ extern "C" {
 }
 extern "C" {
     #[doc = " @brief Get the HTTP mime type of a file.\n\n @return Returns the HTTP mime string\n\n @example const char* mime = webui_get_mime_type(\"foo.png\");"]
-    pub fn webui_get_mime_type(file: *const ::std::os::raw::c_char)
-        -> *const ::std::os::raw::c_char;
+    pub fn webui_get_mime_type(
+        file: *const ::std::os::raw::c_char,
+    ) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
     #[doc = " @brief Set the SSL/TLS certificate and the private key content, both in PEM\n format. This works only with `webui-2-secure` library. If set empty WebUI\n will generate a self-signed certificate.\n\n @param certificate_pem The SSL/TLS certificate content in PEM format\n @param private_key_pem The private key content in PEM format\n\n @return Returns True if the certificate and the key are valid.\n\n @example bool ret = webui_set_tls_certificate(\"-----BEGIN\n CERTIFICATE-----\\n...\", \"-----BEGIN PRIVATE KEY-----\\n...\");"]
@@ -556,11 +549,7 @@ extern "C" {
 }
 extern "C" {
     #[doc = " @brief Get an argument as float at a specific index.\n\n @param window The window number\n @param event_number The event number\n @param index The argument position\n\n @return Returns argument as float\n\n @example double myFloat = webui_interface_get_float_at(myWindow, e->event_number, 0);"]
-    pub fn webui_interface_get_float_at(
-        window: usize,
-        event_number: usize,
-        index: usize,
-    ) -> f64;
+    pub fn webui_interface_get_float_at(window: usize, event_number: usize, index: usize) -> f64;
 }
 extern "C" {
     #[doc = " @brief Show a window using embedded HTML, or a file. Single client.\n\n @param window The window number\n @param event_number The event number\n @param content The HTML, URL, Or a local file\n\n @return Returns True if showing the window is successed.\n\n @example webui_interface_show_client(myWindow, e->event_number, \"<html>...</html>\");"]

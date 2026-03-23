@@ -23,7 +23,10 @@ fn main() {
             "https://github.com/webui-dev/webui/releases/download/nightly/{}.zip",
             zip_name
         );
-        println!("cargo:warning=WebUI library not found. Downloading: {}", url);
+        println!(
+            "cargo:warning=WebUI library not found. Downloading: {}",
+            url
+        );
         fetch_library(&url, &zip_name, lib_filename, &manifest_dir);
         println!("cargo:warning=WebUI library ready.");
     }
@@ -78,12 +81,7 @@ fn fetch_library(url: &str, zip_name: &str, lib_filename: &str, dest_dir: &str) 
             ),
         ]));
     } else {
-        run(Command::new("curl").args([
-            "-fsSL",
-            "-o",
-            zip_path.to_str().unwrap(),
-            url,
-        ]));
+        run(Command::new("curl").args(["-fsSL", "-o", zip_path.to_str().unwrap(), url]));
     }
 
     // Extract
@@ -99,13 +97,7 @@ fn fetch_library(url: &str, zip_name: &str, lib_filename: &str, dest_dir: &str) 
             ),
         ]));
     } else {
-        run(Command::new("unzip").args([
-            "-q",
-            "-o",
-            zip_path.to_str().unwrap(),
-            "-d",
-            dest_dir,
-        ]));
+        run(Command::new("unzip").args(["-q", "-o", zip_path.to_str().unwrap(), "-d", dest_dir]));
     }
 
     // Copy static lib to project root
